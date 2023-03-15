@@ -1,2 +1,3 @@
 pub mod ping;
-pub mod wonderful_command;
+pub mod play;
+pub mod rps;
