@@ -1,4 +1,6 @@
 mod commands;
+mod utils;
+use crate::utils::structs::{AllSerProps, SerProps};
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -7,14 +9,10 @@ use songbird::SerenityInit;
 use tokio::sync::RwLock;
 
 use serenity::async_trait;
-use serenity::client::Context;
-use serenity::client::EventHandler;
-use serenity::model::application::interaction::{Interaction, InteractionResponseType};
-use serenity::model::gateway::GatewayIntents;
-use serenity::model::gateway::Ready;
-use serenity::model::id::GuildId;
-use serenity::model::prelude::ChannelId;
-use serenity::prelude::TypeMapKey;
+use serenity::client::{Context, EventHandler};
+use serenity::model::application::interaction::Interaction;
+use serenity::model::gateway::{GatewayIntents, Ready};
+use serenity::model::id::{ChannelId, GuildId};
 use serenity::Client;
 
 struct Handler;
@@ -23,7 +21,7 @@ struct Handler;
 impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(command) = interaction {
-            println!("Received command interaction: {:#?}", command);
+            println!("Received command: {:#?}", command);
 
             let server_properties = {
                 let data_read = ctx.data.read().await;
@@ -33,23 +31,12 @@ impl EventHandler for Handler {
             let mut wait_write = server_properties.write().await;
             let mut serprops = wait_write.get_mut(&command.guild_id.unwrap()).unwrap();
 
-            let content = match command.data.name.as_str() {
-                "play" => commands::play::run(&command.data.options),
-                "ping" => commands::ping::run(),
-                "rps" => commands::rps::run(&command.data.options),
-                _ => "not implemented :(".to_string(),
+            match command.data.name.as_str() {
+                "play" => commands::play::run(&ctx, &command, serprops).await,
+                "ping" => commands::ping::run(&ctx, &command).await,
+                "rps" => commands::rps::run(&ctx, &command).await,
+                _ => (),
             };
-
-            if let Err(err) = command
-                .create_interaction_response(&ctx.http, |response| {
-                    response
-                        .kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|message| message.content(content))
-                })
-                .await
-            {
-                println!("Cannot respond to slash command: {}", err);
-            }
         }
     }
 
@@ -62,7 +49,7 @@ impl EventHandler for Handler {
             let id: u64 = line[..18].parse().unwrap();
             let gid = GuildId(id);
 
-            let commands = GuildId::set_application_commands(&gid, &ctx.http, |commands| {
+            let _commands = GuildId::set_application_commands(&gid, &ctx.http, |commands| {
                 commands
                     .create_application_command(|command| commands::play::register(command))
                     .create_application_command(|command| commands::ping::register(command))
@@ -70,10 +57,10 @@ impl EventHandler for Handler {
             })
             .await;
 
-            println!(
-                "I now have the following guild slash commands: {:#?}",
-                commands
-            );
+            // println!(
+            //     "I now have the following guild slash commands: {:#?}",
+            //     commands
+            // );
         }
     }
 }
@@ -93,11 +80,14 @@ async fn main() {
         n.insert(guild, SerProps::new(channel));
     }
 
-    let mut client = Client::builder(token, GatewayIntents::GUILD_VOICE_STATES)
-        .event_handler(Handler)
-        .register_songbird()
-        .await
-        .expect("Error creating client");
+    let mut client = Client::builder(
+        token,
+        GatewayIntents::GUILD_VOICE_STATES | GatewayIntents::GUILDS,
+    )
+    .event_handler(Handler)
+    .register_songbird()
+    .await
+    .expect("Error creating client");
 
     {
         let mut data = client.data.write().await;
@@ -107,37 +97,4 @@ async fn main() {
     if let Err(err) = client.start().await {
         println!("Client error: {:?}", err);
     }
-}
-
-struct AllSerProps;
-
-#[derive(Debug)]
-pub struct SerProps {
-    channel_id: ChannelId,
-    user_queue: Vec<Song>,
-    playlist_queue: Vec<Song>,
-    playing: Option<Song>,
-    repeat: bool,
-}
-
-impl TypeMapKey for AllSerProps {
-    type Value = Arc<RwLock<HashMap<GuildId, SerProps>>>;
-}
-
-impl SerProps {
-    fn new(channel_id: ChannelId) -> SerProps {
-        return SerProps {
-            channel_id,
-            user_queue: Vec::new(),
-            playlist_queue: Vec::new(),
-            playing: None,
-            repeat: false,
-        };
-    }
-}
-
-#[derive(Debug)]
-struct Song {
-    id: String,
-    requires_search: bool,
 }

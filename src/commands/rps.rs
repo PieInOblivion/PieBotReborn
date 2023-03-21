@@ -1,12 +1,15 @@
+use crate::utils::respond::msg_rps;
+
 use rand::Rng;
 
 use std::fs;
 
 use serenity::builder::CreateApplicationCommand;
+use serenity::client::Context;
+use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::command::CommandOptionType;
-use serenity::model::prelude::interaction::application_command::CommandDataOption;
 
-pub fn run(options: &[CommandDataOption]) -> String {
+pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let raw_file = fs::read("./secret/rps").unwrap();
     let file_to_string = String::from_utf8_lossy(&raw_file);
     let mut history_str = file_to_string
@@ -16,7 +19,9 @@ pub fn run(options: &[CommandDataOption]) -> String {
     let bot_score: u32 = history_str.next().unwrap();
     let usr_score: u32 = history_str.next().unwrap();
 
-    let usr_choice: &str = options
+    let usr_choice: &str = cmd
+        .data
+        .options
         .get(0)
         .unwrap()
         .value
@@ -24,18 +29,19 @@ pub fn run(options: &[CommandDataOption]) -> String {
         .unwrap()
         .as_str()
         .unwrap();
+
     let bot_choice: &str = ["Rock", "Paper", "Scissors"][rand::thread_rng().gen_range(0..=2)];
 
     match (bot_choice, usr_choice) {
         ("Rock", "Scissors") | ("Scissors", "Paper") | ("Paper", "Rock") => {
             save_rps(bot_score + 1, usr_score);
-            format!("Bot Wins!\nBot: {} | You: {}", bot_score + 1, usr_score)
+            msg_rps(ctx, cmd, bot_score + 1, usr_score, "I won!").await;
         }
         ("Rock", "Paper") | ("Scissors", "Rock") | ("Paper", "Scissors") => {
             save_rps(bot_score, usr_score + 1);
-            format!("You Wins!\nBot: {} | You: {}", bot_score, usr_score + 1)
+            msg_rps(ctx, cmd, bot_score, usr_score + 1, "You won!").await;
         }
-        _ => format!("Tie!\nBot: {bot_score} | You: {usr_score}"),
+        _ => msg_rps(ctx, cmd, bot_score, usr_score, "We tied!").await,
     }
 }
 
