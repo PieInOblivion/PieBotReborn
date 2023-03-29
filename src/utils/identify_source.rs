@@ -1,7 +1,7 @@
-use crate::utils::structs::SongIdentify;
+use crate::utils::structs::SongFilterResult;
 use regex::Regex;
 
-pub fn parse_source(input: &String) -> SongIdentify {
+pub fn parse_source(input: &String) -> SongFilterResult {
     let yt_id = yt_id_extract(input);
     let yt_list = yt_list_extract(input);
     let spot_track = spotify_track_extract(input);
@@ -11,7 +11,7 @@ pub fn parse_source(input: &String) -> SongIdentify {
         .iter()
         .all(|o| o.is_none());
 
-    return SongIdentify {
+    return SongFilterResult {
         yt_id,
         yt_list,
         spot_track,
@@ -35,7 +35,7 @@ fn yt_id_extract(input: &String) -> Option<String> {
 fn yt_list_extract(input: &String) -> Option<String> {
     let start = input.find("list=");
     if let Some(i) = start {
-        return Some(input[i + 5..i + 18].to_string());
+        return Some(input[i + 5..i + 39].to_string());
     }
 
     None

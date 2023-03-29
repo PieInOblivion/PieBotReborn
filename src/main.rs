@@ -21,7 +21,7 @@ struct Handler;
 impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(command) = interaction {
-            println!("Received command: {:#?}", command);
+            // println!("Received command: {:#?}", command);
 
             let server_properties = {
                 let data_read = ctx.data.read().await;
@@ -29,7 +29,7 @@ impl EventHandler for Handler {
             };
 
             let mut wait_write = server_properties.write().await;
-            let mut serprops = wait_write.get_mut(&command.guild_id.unwrap()).unwrap();
+            let serprops = wait_write.get_mut(&command.guild_id.unwrap()).unwrap();
 
             match command.data.name.as_str() {
                 "play" => commands::play::run(&ctx, &command, serprops).await,

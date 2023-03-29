@@ -2,18 +2,10 @@ use serenity::model::id::GuildId;
 use serenity::model::prelude::ChannelId;
 use serenity::prelude::TypeMapKey;
 
-use google_youtube3::YouTube;
-
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
-
-pub struct YouTubeHub;
-
-// impl TypeMapKey for YouTubeHub {
-// type Value = Arc<RwLock<YouTube>>;
-// }
 
 pub struct AllSerProps;
 
@@ -40,14 +32,14 @@ impl SerProps {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Song {
-    pub id: String,
-    pub requires_search: bool,
+    pub id: Option<String>,
+    pub title: String,
 }
 
 #[derive(Debug)]
-pub struct SongIdentify {
+pub struct SongFilterResult {
     pub yt_id: Option<String>,
     pub yt_list: Option<String>,
     pub spot_track: Option<String>,

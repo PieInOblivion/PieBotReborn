@@ -1,6 +1,11 @@
+use crate::utils::audio_handler::audio_event;
 use crate::utils::identify_source::parse_source;
 use crate::utils::interaction::arg_to_str;
-use crate::utils::respond::msg_user_not_in_voice_channel;
+use crate::utils::query_youtube::{yt_id_to_name, yt_list_id_to_vec, yt_search};
+use crate::utils::respond::{
+    msg_list_queue_added, msg_no_yt_search_result, msg_request_queue, msg_user_not_in_voice_channel,
+};
+use crate::utils::shuffle_vec::shuffle_vec;
 use crate::utils::structs::SerProps;
 
 use serenity::builder::CreateApplicationCommand;
@@ -9,14 +14,6 @@ use serenity::model::application::interaction::application_command::ApplicationC
 use serenity::model::prelude::command::CommandOptionType;
 
 pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction, serprops: &mut SerProps) {
-    // check if user is in voice channel
-    // check if currently in that voice channel
-    //     if not, join, AND parse user input to song items
-    //     if is, just parse user input
-    // place parsed song items into relevant queue
-    //
-
-    // Check if user is in a voice channel
     let guild_id = cmd.guild_id.unwrap();
     let guild = ctx.cache.guild(guild_id).unwrap();
 
@@ -30,52 +27,47 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction, serprops: &
         return;
     }
 
-    // Parse the user input
-    let url: String = arg_to_str(cmd);
-    let url_identify = parse_source(&url);
+    let user_query: String = arg_to_str(cmd);
+    let url_identify = parse_source(&user_query);
 
-    // Convert parsed information into serprops
     if url_identify.search_needed {
+        if let Some(song) = yt_search(&user_query).await {
+            serprops.request_queue.push(song.clone());
+            msg_request_queue(ctx, cmd, serprops, &song).await;
+        } else {
+            msg_no_yt_search_result(ctx, cmd, &user_query).await;
+        }
     } else {
-        if url_identify.yt_id.is_some() {}
-        if url_identify.yt_list.is_some() {}
+        if url_identify.yt_id.is_some() && url_identify.yt_list.is_some() {
+            // TODO: combined song and playlist request
+        }
+
+        if url_identify.yt_id.is_some() && url_identify.yt_list.is_none() {
+            if let Some(song) = yt_id_to_name(url_identify.yt_id.as_ref().unwrap()).await {
+                serprops.request_queue.push(song.clone());
+                msg_request_queue(ctx, cmd, serprops, &song).await;
+            } else {
+                msg_no_yt_search_result(ctx, cmd, &user_query).await;
+            }
+        }
+
+        if url_identify.yt_list.is_some() && url_identify.yt_id.is_none() {
+            if let Some(mut list) = yt_list_id_to_vec(url_identify.yt_list.as_ref().unwrap()).await
+            {
+                let len = list.len();
+                serprops.playlist_queue.append(&mut list);
+                shuffle_vec(&mut serprops.playlist_queue);
+                msg_list_queue_added(ctx, cmd, serprops, len).await;
+            } else {
+                msg_no_yt_search_result(ctx, cmd, &user_query).await;
+            }
+        }
         if url_identify.spot_track.is_some() {}
         if url_identify.spot_list.is_some() {}
         if url_identify.spot_album.is_some() {}
     }
 
-    // Retrieve global songbird manager
-    let manager = songbird::get(ctx).await.unwrap();
-
-    // Check if already in the voice channel with the latest request
-    if let Some(guild_connection) = manager.get(guild_id) {
-        // Is in this guild. Check if same voice channel
-        let mut call = guild_connection.lock().await;
-        if call.current_channel().unwrap().0 != voice_channel_id.unwrap().0 {
-            // In same guild but not channel, move channels
-            let _ = call.join(voice_channel_id.unwrap()).await;
-        }
-    } else {
-        // TODO: deal with error joining
-        // Since not in the guild yet, join
-        let _ = manager.join(guild_id, voice_channel_id.unwrap()).await;
-    }
-
-    if let Some(handler_lock) = manager.get(guild_id) {
-        let mut handler = handler_lock.lock().await;
-
-        let source = match songbird::ytdl(url).await {
-            Ok(source) => source,
-            Err(why) => {
-                println!("Err starting source: {:#?}", why);
-                return;
-            }
-        };
-
-        handler.play_source(source);
-    } else {
-        println!("not in voice channel");
-    }
+    audio_event(ctx, serprops, guild_id, voice_channel_id.unwrap()).await;
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
@@ -84,8 +76,8 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
         .description("Plays YouTube videos, playlists and Spotify tracks, albums and playlists")
         .create_option(|option| {
             option
-                .name("url")
-                .description("URL of the source")
+                .name("query")
+                .description("Youtube or Spotify URL, or search")
                 .kind(CommandOptionType::String)
                 .required(true)
         })
