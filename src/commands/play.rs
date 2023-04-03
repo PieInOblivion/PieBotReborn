@@ -39,7 +39,23 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction, serprops: &
         }
     } else {
         if url_identify.yt_id.is_some() && url_identify.yt_list.is_some() {
-            // TODO: combined song and playlist request
+            // && two 'if let Some()' statements is unstable in current rust
+            // https://github.com/rust-lang/rust/issues/53667
+            let song = yt_id_to_name(url_identify.yt_id.as_ref().unwrap()).await;
+            let mut list = yt_list_id_to_vec(url_identify.yt_list.as_ref().unwrap()).await;
+            if song.is_some() && list.is_some() {
+                // Remove the duplicate song
+                list.as_mut()
+                    .unwrap()
+                    .retain(|s| s.id != song.as_ref().unwrap().id);
+                serprops.request_queue.push(song.unwrap());
+                let len = list.as_ref().unwrap().len();
+                serprops.playlist_queue.append(&mut list.unwrap());
+                shuffle_vec(&mut serprops.playlist_queue);
+                msg_list_queue_added(ctx, cmd, serprops, 1, len).await;
+            } else {
+                msg_no_yt_search_result(ctx, cmd, &user_query).await;
+            }
         }
 
         if url_identify.yt_id.is_some() && url_identify.yt_list.is_none() {
@@ -57,13 +73,16 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction, serprops: &
                 let len = list.len();
                 serprops.playlist_queue.append(&mut list);
                 shuffle_vec(&mut serprops.playlist_queue);
-                msg_list_queue_added(ctx, cmd, serprops, len).await;
+                msg_list_queue_added(ctx, cmd, serprops, 0, len).await;
             } else {
                 msg_no_yt_search_result(ctx, cmd, &user_query).await;
             }
         }
+
         if url_identify.spot_track.is_some() {}
+
         if url_identify.spot_list.is_some() {}
+
         if url_identify.spot_album.is_some() {}
     }
 

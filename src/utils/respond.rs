@@ -118,7 +118,8 @@ pub async fn msg_list_queue_added(
     ctx: &Context,
     cmd: &ApplicationCommandInteraction,
     serprops: &SerProps,
-    len: usize,
+    req_len: usize,
+    list_len: usize,
 ) {
     let mut embed = CreateEmbed::default().to_owned();
     embed.title("Queue Stats");
@@ -126,12 +127,12 @@ pub async fn msg_list_queue_added(
     embed.fields(vec![
         (
             format!("User Queue: {}", serprops.request_queue.len()),
-            "0 Added".to_string(),
+            format!("{} Added", req_len),
             true,
         ),
         (
             format!("Playlist Queue: {}", serprops.playlist_queue.len()),
-            format!("{} Added", len),
+            format!("{} Added", list_len),
             true,
         ),
     ]);

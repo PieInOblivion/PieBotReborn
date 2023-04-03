@@ -1,5 +1,7 @@
+use hyper::body::to_bytes;
 use hyper::{Client, Uri};
 use hyper_rustls::HttpsConnectorBuilder;
+use serde_json::from_slice;
 
 use crate::utils::structs::Song;
 
@@ -95,9 +97,9 @@ async fn yt_https_request(url: String) -> Option<serde_json::Value> {
 
     let mut res = client.get(uri).await.ok()?;
 
-    let body = hyper::body::to_bytes(res.body_mut()).await.ok()?;
+    let body = to_bytes(res.body_mut()).await.ok()?;
 
-    let response: serde_json::Value = serde_json::from_slice(&body).ok()?;
+    let response: serde_json::Value = from_slice(&body).ok()?;
 
     Some(response)
 }

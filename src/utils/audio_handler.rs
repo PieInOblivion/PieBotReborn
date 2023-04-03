@@ -1,9 +1,12 @@
 use serenity::client::Context;
 
+use serenity::async_trait;
 use serenity::model::id::ChannelId;
 use serenity::model::id::GuildId;
 
-use crate::utils::structs::SerProps;
+use songbird::{Event, EventContext, EventHandler};
+
+use crate::utils::structs::{AllSerProps, SerProps};
 
 pub async fn audio_event(
     ctx: &Context,
@@ -34,7 +37,6 @@ pub async fn audio_event(
             let _ = call.join(voice_channel_id).await;
         }
     } else {
-        // TODO: deal with error joining
         // Since not in the guild yet, join
         let _ = manager.join(guild_id, voice_channel_id).await;
     }
@@ -56,6 +58,39 @@ pub async fn audio_event(
         };
 
         handler.play_source(source);
+
+        handler.add_global_event(
+            songbird::Event::Track(songbird::TrackEvent::End),
+            TrackEndNotifier {
+                guild_id,
+                voice_channel_id,
+                ctx: ctx.clone(),
+            },
+        )
+    }
+}
+
+struct TrackEndNotifier {
+    guild_id: GuildId,
+    voice_channel_id: ChannelId,
+    ctx: Context,
+}
+
+#[async_trait]
+impl EventHandler for TrackEndNotifier {
+    async fn act(&self, _: &EventContext<'_>) -> Option<Event> {
+        let server_properties = {
+            let data_read = self.ctx.data.read().await;
+            data_read.get::<AllSerProps>().unwrap().clone()
+        };
+        let mut wait_write = server_properties.write().await;
+        let serprops = wait_write.get_mut(&self.guild_id).unwrap();
+
+        serprops.playing = None;
+
+        audio_event(&self.ctx, serprops, self.guild_id, self.voice_channel_id).await;
+
+        None
     }
 }
 
