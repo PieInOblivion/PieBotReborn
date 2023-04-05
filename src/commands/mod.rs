@@ -1,3 +1,9 @@
+pub mod now_playing;
+pub mod pause;
 pub mod ping;
 pub mod play;
+pub mod queue;
+pub mod resume;
 pub mod rps;
+pub mod skip;
+pub mod stop;

@@ -20,21 +20,19 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        if let Interaction::ApplicationCommand(command) = interaction {
-            // println!("Received command: {:#?}", command);
+        if let Interaction::ApplicationCommand(cmd) = interaction {
+            // dbg!("Received command", &cmd);
 
-            let server_properties = {
-                let data_read = ctx.data.read().await;
-                data_read.get::<AllSerProps>().unwrap().clone()
-            };
-
-            let mut wait_write = server_properties.write().await;
-            let serprops = wait_write.get_mut(&command.guild_id.unwrap()).unwrap();
-
-            match command.data.name.as_str() {
-                "play" => commands::play::run(&ctx, &command, serprops).await,
-                "ping" => commands::ping::run(&ctx, &command).await,
-                "rps" => commands::rps::run(&ctx, &command).await,
+            match cmd.data.name.as_str() {
+                "play" => commands::play::run(&ctx, &cmd).await,
+                "pause" => commands::pause::run(&ctx, &cmd).await,
+                "resume" => commands::resume::run(&ctx, &cmd).await,
+                "skip" => commands::skip::run(&ctx, &cmd).await,
+                "stop" => commands::stop::run(&ctx, &cmd).await,
+                "np" => commands::now_playing::run(&ctx, &cmd).await,
+                "queue" => commands::queue::run(&ctx, &cmd).await,
+                "ping" => commands::ping::run(&ctx, &cmd).await,
+                "rps" => commands::rps::run(&ctx, &cmd).await,
                 _ => (),
             };
         }
@@ -52,15 +50,18 @@ impl EventHandler for Handler {
             let _commands = GuildId::set_application_commands(&gid, &ctx.http, |commands| {
                 commands
                     .create_application_command(|command| commands::play::register(command))
+                    .create_application_command(|command| commands::pause::register(command))
+                    .create_application_command(|command| commands::resume::register(command))
+                    .create_application_command(|command| commands::skip::register(command))
+                    .create_application_command(|command| commands::stop::register(command))
+                    .create_application_command(|command| commands::now_playing::register(command))
+                    .create_application_command(|command| commands::queue::register(command))
                     .create_application_command(|command| commands::ping::register(command))
                     .create_application_command(|command| commands::rps::register(command))
             })
             .await;
 
-            // println!(
-            //     "I now have the following guild slash commands: {:#?}",
-            //     commands
-            // );
+            // dbg!("Added guild slash commands", commands.unwrap());
         }
     }
 }

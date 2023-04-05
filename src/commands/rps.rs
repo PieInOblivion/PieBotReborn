@@ -6,8 +6,8 @@ use std::fs;
 
 use serenity::builder::CreateApplicationCommand;
 use serenity::client::Context;
+use serenity::model::application::command::CommandOptionType;
 use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::command::CommandOptionType;
 
 pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let raw_file = fs::read("./secret/rps").unwrap();

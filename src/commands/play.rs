@@ -6,21 +6,16 @@ use crate::utils::respond::{
     msg_list_queue_added, msg_no_yt_search_result, msg_request_queue, msg_user_not_in_voice_channel,
 };
 use crate::utils::shuffle_vec::shuffle_vec;
-use crate::utils::structs::SerProps;
+use crate::utils::structs::AllSerProps;
+use crate::utils::user_current_voice_and_guild::voice_and_guild;
 
 use serenity::builder::CreateApplicationCommand;
 use serenity::client::Context;
+use serenity::model::application::command::CommandOptionType;
 use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::command::CommandOptionType;
 
-pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction, serprops: &mut SerProps) {
-    let guild_id = cmd.guild_id.unwrap();
-    let guild = ctx.cache.guild(guild_id).unwrap();
-
-    let voice_channel_id = guild
-        .voice_states
-        .get(&cmd.user.id)
-        .and_then(|vs| vs.channel_id);
+pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
+    let (_, guild_id, voice_channel_id) = voice_and_guild(ctx, cmd);
 
     if voice_channel_id == None {
         msg_user_not_in_voice_channel(ctx, cmd).await;
@@ -30,10 +25,17 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction, serprops: &
     let user_query: String = arg_to_str(cmd);
     let url_identify = parse_source(&user_query);
 
+    let server_properties = {
+        let data_read = ctx.data.read().await;
+        data_read.get::<AllSerProps>().unwrap().clone()
+    };
+    let mut wait_write = server_properties.write().await;
+    let serprops = wait_write.get_mut(&guild_id).unwrap();
+
     if url_identify.search_needed {
         if let Some(song) = yt_search(&user_query).await {
             serprops.request_queue.push(song.clone());
-            msg_request_queue(ctx, cmd, serprops, &song).await;
+            msg_request_queue(ctx, cmd, serprops, song).await;
         } else {
             msg_no_yt_search_result(ctx, cmd, &user_query).await;
         }
@@ -61,7 +63,7 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction, serprops: &
         if url_identify.yt_id.is_some() && url_identify.yt_list.is_none() {
             if let Some(song) = yt_id_to_name(url_identify.yt_id.as_ref().unwrap()).await {
                 serprops.request_queue.push(song.clone());
-                msg_request_queue(ctx, cmd, serprops, &song).await;
+                msg_request_queue(ctx, cmd, serprops, song).await;
             } else {
                 msg_no_yt_search_result(ctx, cmd, &user_query).await;
             }
@@ -86,7 +88,9 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction, serprops: &
         if url_identify.spot_album.is_some() {}
     }
 
-    audio_event(ctx, serprops, guild_id, voice_channel_id.unwrap()).await;
+    drop(wait_write);
+
+    audio_event(ctx, guild_id, voice_channel_id.unwrap()).await;
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
