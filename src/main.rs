@@ -29,6 +29,7 @@ impl EventHandler for Handler {
                 "resume" => commands::resume::run(&ctx, &cmd).await,
                 "skip" => commands::skip::run(&ctx, &cmd).await,
                 "stop" => commands::stop::run(&ctx, &cmd).await,
+                "remove" => commands::remove::run(&ctx, &cmd).await,
                 "np" => commands::now_playing::run(&ctx, &cmd).await,
                 "queue" => commands::queue::run(&ctx, &cmd).await,
                 "ping" => commands::ping::run(&ctx, &cmd).await,
@@ -54,6 +55,7 @@ impl EventHandler for Handler {
                     .create_application_command(|command| commands::resume::register(command))
                     .create_application_command(|command| commands::skip::register(command))
                     .create_application_command(|command| commands::stop::register(command))
+                    .create_application_command(|command| commands::remove::register(command))
                     .create_application_command(|command| commands::now_playing::register(command))
                     .create_application_command(|command| commands::queue::register(command))
                     .create_application_command(|command| commands::ping::register(command))

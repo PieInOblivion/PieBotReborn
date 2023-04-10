@@ -3,6 +3,7 @@ pub mod pause;
 pub mod ping;
 pub mod play;
 pub mod queue;
+pub mod remove;
 pub mod resume;
 pub mod rps;
 pub mod skip;

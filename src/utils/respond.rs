@@ -224,6 +224,22 @@ pub async fn msg_stopped_failed(ctx: &Context, cmd: &ApplicationCommandInteracti
     send_embed(ctx, cmd, embed).await;
 }
 
+pub async fn msg_removed_last_song(ctx: &Context, cmd: &ApplicationCommandInteraction) {
+    let mut embed = CreateEmbed::default().to_owned();
+    embed.colour((0, 255, 255));
+    embed.title("Removed last song added to user queue");
+
+    send_embed(ctx, cmd, embed).await;
+}
+
+pub async fn msg_removed_last_song_failed(ctx: &Context, cmd: &ApplicationCommandInteraction) {
+    let mut embed = CreateEmbed::default().to_owned();
+    embed.colour((255, 153, 00));
+    embed.field("Nice.", "No songs in user queue to remove", false);
+
+    send_embed(ctx, cmd, embed).await;
+}
+
 async fn send_embed(ctx: &Context, cmd: &ApplicationCommandInteraction, embed: CreateEmbed) {
     cmd.create_interaction_response(&ctx.http, |response| {
         response
