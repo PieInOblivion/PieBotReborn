@@ -7,8 +7,8 @@ use crate::utils::structs::{SerProps, Song};
 
 pub async fn msg_ping(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let mut embed = CreateEmbed::default().to_owned();
+    embed.colour(0xffffff);
     embed.title("Hey, I'm alive!");
-    embed.colour((255, 255, 255));
 
     send_embed(ctx, cmd, embed).await;
 }
@@ -21,8 +21,8 @@ pub async fn msg_rps(
     winner: &str,
 ) {
     let mut embed = CreateEmbed::default().to_owned();
+    embed.colour(0x00ffff);
     embed.title(winner);
-    embed.colour((0, 255, 255));
     embed.fields(vec![("Bot", bot_score, true), ("Users", user_score, true)]);
 
     send_embed(ctx, cmd, embed).await;
@@ -30,7 +30,7 @@ pub async fn msg_rps(
 
 pub async fn msg_user_not_in_voice_channel(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let mut embed = CreateEmbed::default().to_owned();
-    embed.colour((255, 153, 0));
+    embed.colour(0xff9900);
     embed.field(
         "I can't see you",
         "Please be in a voice channel first!",
@@ -46,8 +46,8 @@ pub async fn msg_no_yt_search_result(
     query: &String,
 ) {
     let mut embed = CreateEmbed::default().to_owned();
+    embed.colour(0xff0000);
     embed.title(format!("Search failed: {}", query));
-    embed.colour((255, 0, 0));
 
     send_embed(ctx, cmd, embed).await;
 }
@@ -69,8 +69,8 @@ pub async fn msg_request_queue(
 
 pub async fn msg_now_playing(ctx: &Context, cmd: &ApplicationCommandInteraction, song: Song) {
     let mut embed = CreateEmbed::default().to_owned();
+    embed.colour(0x00ffff);
     embed.title("Now Playing:");
-    embed.colour((0, 255, 255));
     embed.field(
         song.title.clone(),
         format!(
@@ -91,8 +91,8 @@ async fn msg_user_queue_added(
     play_q: String,
 ) {
     let mut embed = CreateEmbed::default().to_owned();
+    embed.colour(0x00ffff);
     embed.title("Added to Queue:");
-    embed.colour((0, 255, 255));
     embed.fields(vec![
         (
             song.title.clone(),
@@ -117,8 +117,8 @@ pub async fn msg_list_queue_added(
     play_len_added: usize,
 ) {
     let mut embed = CreateEmbed::default().to_owned();
+    embed.colour(0x00ffff);
     embed.title("Queue Stats");
-    embed.colour((0, 255, 255));
     embed.fields(vec![
         (
             format!("User Queue: {}", serprops.request_queue.len()),
@@ -142,8 +142,8 @@ pub async fn msg_queue_stats(
     play_len: String,
 ) {
     let mut embed = CreateEmbed::default().to_owned();
+    embed.colour(0x00ffff);
     embed.title("Queue Stats");
-    embed.colour((0, 255, 255));
     embed.fields(vec![
         ("User Queue Length:", req_len, true),
         ("Playlist Queue Length:", play_len, true),
@@ -154,15 +154,15 @@ pub async fn msg_queue_stats(
 
 pub async fn msg_paused(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let mut embed = CreateEmbed::default().to_owned();
+    embed.colour(0x00ffff);
     embed.title("Paused");
-    embed.colour((0, 255, 255));
 
     send_embed(ctx, cmd, embed).await;
 }
 
 pub async fn msg_is_paused(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let mut embed = CreateEmbed::default().to_owned();
-    embed.colour((255, 153, 0));
+    embed.colour(0xff9900);
     embed.field("Nice.", "I'm already paused", false);
 
     send_embed(ctx, cmd, embed).await;
@@ -170,15 +170,15 @@ pub async fn msg_is_paused(ctx: &Context, cmd: &ApplicationCommandInteraction) {
 
 pub async fn msg_resumed(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let mut embed = CreateEmbed::default().to_owned();
+    embed.colour(0x00ffff);
     embed.title("Resuming");
-    embed.colour((0, 255, 255));
 
     send_embed(ctx, cmd, embed).await;
 }
 
 pub async fn msg_is_resumed(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let mut embed = CreateEmbed::default().to_owned();
-    embed.colour((255, 153, 0));
+    embed.colour(0xff9900);
     embed.field("Nice.", "I'm already playing", false);
 
     send_embed(ctx, cmd, embed).await;
@@ -186,7 +186,7 @@ pub async fn msg_is_resumed(ctx: &Context, cmd: &ApplicationCommandInteraction) 
 
 pub async fn msg_not_playing(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let mut embed = CreateEmbed::default().to_owned();
-    embed.colour((255, 153, 0));
+    embed.colour(0xff9900);
     embed.field("Nice.", "I'm not currently playing anything", false);
 
     send_embed(ctx, cmd, embed).await;
@@ -194,7 +194,7 @@ pub async fn msg_not_playing(ctx: &Context, cmd: &ApplicationCommandInteraction)
 
 pub async fn msg_skipped(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let mut embed = CreateEmbed::default().to_owned();
-    embed.colour((0, 255, 255));
+    embed.colour(0x00ffff);
     embed.title("Skipped");
 
     send_embed(ctx, cmd, embed).await;
@@ -202,7 +202,7 @@ pub async fn msg_skipped(ctx: &Context, cmd: &ApplicationCommandInteraction) {
 
 pub async fn msg_skipped_failed(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let mut embed = CreateEmbed::default().to_owned();
-    embed.colour((255, 153, 0));
+    embed.colour(0xff9900);
     embed.field("Nice.", "There are no songs in either queues", false);
 
     send_embed(ctx, cmd, embed).await;
@@ -210,7 +210,7 @@ pub async fn msg_skipped_failed(ctx: &Context, cmd: &ApplicationCommandInteracti
 
 pub async fn msg_stopped(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let mut embed = CreateEmbed::default().to_owned();
-    embed.colour((0, 255, 255));
+    embed.colour(0x00ffff);
     embed.title("Stopped");
 
     send_embed(ctx, cmd, embed).await;
@@ -218,7 +218,7 @@ pub async fn msg_stopped(ctx: &Context, cmd: &ApplicationCommandInteraction) {
 
 pub async fn msg_stopped_failed(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let mut embed = CreateEmbed::default().to_owned();
-    embed.colour((255, 153, 0));
+    embed.colour(0xff9900);
     embed.field("Nice.", "You stopped NOTHING!", false);
 
     send_embed(ctx, cmd, embed).await;
@@ -226,7 +226,7 @@ pub async fn msg_stopped_failed(ctx: &Context, cmd: &ApplicationCommandInteracti
 
 pub async fn msg_removed_last_song(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let mut embed = CreateEmbed::default().to_owned();
-    embed.colour((0, 255, 255));
+    embed.colour(0x00ffff);
     embed.title("Removed last song added to user queue");
 
     send_embed(ctx, cmd, embed).await;
@@ -234,7 +234,7 @@ pub async fn msg_removed_last_song(ctx: &Context, cmd: &ApplicationCommandIntera
 
 pub async fn msg_removed_last_song_failed(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let mut embed = CreateEmbed::default().to_owned();
-    embed.colour((255, 153, 00));
+    embed.colour(0xff9900);
     embed.field("Nice.", "No songs in user queue to remove", false);
 
     send_embed(ctx, cmd, embed).await;

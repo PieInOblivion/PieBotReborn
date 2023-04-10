@@ -40,8 +40,6 @@ impl EventHandler for Handler {
     }
 
     async fn ready(&self, ctx: Context, ready: Ready) {
-        println!("{} is connected!", ready.user.name);
-
         let guilds_file = include_str!("../secret/channels");
 
         for line in guilds_file.lines() {
@@ -62,9 +60,9 @@ impl EventHandler for Handler {
                     .create_application_command(|command| commands::rps::register(command))
             })
             .await;
-
-            // dbg!("Added guild slash commands", commands.unwrap());
         }
+
+        println!("{} is connected!", ready.user.name);
     }
 }
 

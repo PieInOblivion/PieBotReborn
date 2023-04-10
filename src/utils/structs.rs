@@ -7,6 +7,9 @@ use songbird::tracks::TrackHandle;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use rand::seq::SliceRandom;
+use rand::thread_rng;
+
 use tokio::sync::RwLock;
 
 pub struct AllSerProps;
@@ -33,6 +36,10 @@ impl SerProps {
             playing: None,
             playing_handle: None,
         };
+    }
+
+    pub fn playlist_queue_shuffle(&mut self) {
+        self.playlist_queue.shuffle(&mut thread_rng());
     }
 }
 

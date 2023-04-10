@@ -5,7 +5,6 @@ use crate::utils::query_youtube::{yt_id_to_name, yt_list_id_to_vec, yt_search};
 use crate::utils::respond::{
     msg_list_queue_added, msg_no_yt_search_result, msg_request_queue, msg_user_not_in_voice_channel,
 };
-use crate::utils::shuffle_vec::shuffle_vec;
 use crate::utils::structs::AllSerProps;
 use crate::utils::user_current_voice_and_guild::voice_and_guild;
 
@@ -53,7 +52,7 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
                 serprops.request_queue.push(song.unwrap());
                 let len = list.as_ref().unwrap().len();
                 serprops.playlist_queue.append(&mut list.unwrap());
-                shuffle_vec(&mut serprops.playlist_queue);
+                serprops.playlist_queue_shuffle();
                 msg_list_queue_added(ctx, cmd, serprops, 1, len).await;
             } else {
                 msg_no_yt_search_result(ctx, cmd, &user_query).await;
@@ -74,7 +73,7 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
             {
                 let len = list.len();
                 serprops.playlist_queue.append(&mut list);
-                shuffle_vec(&mut serprops.playlist_queue);
+                serprops.playlist_queue_shuffle();
                 msg_list_queue_added(ctx, cmd, serprops, 0, len).await;
             } else {
                 msg_no_yt_search_result(ctx, cmd, &user_query).await;

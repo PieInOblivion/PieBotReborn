@@ -23,7 +23,7 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
         let wait_read = allserprops.read().await;
         let serprops = wait_read.get(&guild_id).unwrap();
 
-        if !serprops.playing.is_some() {
+        if serprops.playing.is_none() {
             msg_not_playing(ctx, cmd).await;
             return;
         }

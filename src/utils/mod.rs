@@ -5,6 +5,5 @@ pub mod query_spotify;
 pub mod query_youtube;
 pub mod reset_serprops;
 pub mod respond;
-pub mod shuffle_vec;
 pub mod structs;
 pub mod user_current_voice_and_guild;
