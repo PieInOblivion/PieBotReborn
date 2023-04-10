@@ -34,15 +34,6 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
 
     //TODO: The song might require a youtube search if it came from spotify
 
-    let manager = songbird::get(ctx).await.unwrap();
-    let call = {
-        if let Some(call) = manager.get(guild_id) {
-            call
-        } else {
-            manager.join(guild_id, voice_channel_id).await.0
-        }
-    };
-
     let source = match songbird::ytdl(format!(
         "https://www.youtube.com/watch?v={}",
         song.id.as_ref().unwrap()
@@ -53,6 +44,30 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
         Err(err) => {
             println!("Download failed: {:#?}\n{:#?}", song, err);
             return;
+        }
+    };
+
+    let manager = songbird::get(ctx).await.unwrap();
+
+    let call = {
+        if let Some(call) = manager.get(guild_id) {
+            call
+        } else {
+            let call = manager.join(guild_id, voice_channel_id).await.0;
+            let mut call_lock = call.lock().await;
+
+            call_lock.add_global_event(
+                songbird::Event::Track(songbird::TrackEvent::End),
+                TrackEndNotifier {
+                    guild_id,
+                    voice_channel_id,
+                    ctx: ctx.clone(),
+                },
+            );
+
+            drop(call_lock);
+
+            call
         }
     };
 
@@ -67,15 +82,6 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
         let serprops = wait_write.get_mut(&guild_id).unwrap();
         serprops.playing_handle = Some(call_lock.play_source(source));
     }
-
-    call_lock.add_global_event(
-        songbird::Event::Track(songbird::TrackEvent::End),
-        TrackEndNotifier {
-            guild_id,
-            voice_channel_id,
-            ctx: ctx.clone(),
-        },
-    );
 
     drop(call_lock);
 }
@@ -99,6 +105,7 @@ impl EventHandler for TrackEndNotifier {
             let serprops = wait_write.get_mut(&self.guild_id).unwrap();
 
             serprops.playing = None;
+            serprops.playing_handle = None;
         }
 
         audio_event(&self.ctx, self.guild_id, self.voice_channel_id).await;

@@ -21,8 +21,6 @@ struct Handler;
 impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(cmd) = interaction {
-            // dbg!("Received command", &cmd);
-
             match cmd.data.name.as_str() {
                 "play" => commands::play::run(&ctx, &cmd).await,
                 "pause" => commands::pause::run(&ctx, &cmd).await,

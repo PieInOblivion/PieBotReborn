@@ -11,9 +11,11 @@ Cargo.lock
 
 
 # Added by cargo
-
 /target
 
 
 # Users will need to replace /secret with /secret_example
 /secret
+
+# Temp file created by yt-dlp
+--Frag1
