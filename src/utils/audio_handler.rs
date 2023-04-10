@@ -43,8 +43,6 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
         }
     };
 
-    let mut call_lock = call.lock().await;
-
     let source = match songbird::ytdl(format!(
         "https://www.youtube.com/watch?v={}",
         song.id.as_ref().unwrap()
@@ -57,6 +55,8 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
             return;
         }
     };
+
+    let mut call_lock = call.lock().await;
 
     {
         let allserprops = {
@@ -76,6 +76,8 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
             ctx: ctx.clone(),
         },
     );
+
+    drop(call_lock);
 }
 
 struct TrackEndNotifier {

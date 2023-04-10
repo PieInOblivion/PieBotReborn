@@ -3,11 +3,13 @@ name = "pie_bot_reborn"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.release]
+lto = true
+opt-level = 3
 
 [dependencies]
 tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
-songbird = { version = "0.3.1", features = ["yt-dlp"] }
+songbird = { version = "0.3.2", features = ["yt-dlp"] }
 rand = "0.8.5"
 regex = "1.7.3"
 serde_json = "1.0.95"
