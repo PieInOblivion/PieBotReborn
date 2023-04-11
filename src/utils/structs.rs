@@ -12,10 +12,18 @@ use rand::thread_rng;
 
 use tokio::sync::RwLock;
 
+use rspotify::ClientCredsSpotify;
+
 pub struct AllSerProps;
 
 impl TypeMapKey for AllSerProps {
-    type Value = Arc<RwLock<HashMap<GuildId, SerProps>>>;
+    type Value = HashMap<GuildId, Arc<RwLock<SerProps>>>;
+}
+
+pub struct Spotify;
+
+impl TypeMapKey for Spotify {
+    type Value = ClientCredsSpotify;
 }
 
 #[derive(Clone, Debug)]

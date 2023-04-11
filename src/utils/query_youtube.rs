@@ -1,5 +1,5 @@
 use hyper::body::to_bytes;
-use hyper::{Client, Uri};
+use hyper::{Body, Client, Uri};
 use hyper_rustls::HttpsConnectorBuilder;
 use serde_json::from_slice;
 
@@ -91,7 +91,7 @@ async fn yt_https_request(url: String) -> Option<serde_json::Value> {
         .enable_http2()
         .build();
 
-    let client = Client::builder().build::<_, hyper::Body>(https);
+    let client = Client::builder().build::<_, Body>(https);
 
     let uri = url.parse::<Uri>().ok()?;
 

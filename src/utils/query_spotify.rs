@@ -1,24 +1,43 @@
-use hyper::{Body, Client, Request};
-use hyper_rustls::HttpsConnectorBuilder;
+use rspotify::{
+    model::PlaylistId,
+    model::{AlbumId, Market},
+    prelude::BaseClient,
+    ClientCredsSpotify, Credentials,
+};
 
-pub async fn spotify_track() {
-    let https = HttpsConnectorBuilder::new()
-        .with_native_roots()
-        .https_only()
-        .enable_http2()
-        .build();
+use serenity::client::Context;
 
-    let client = Client::builder().build::<_, Body>(https);
+use crate::utils::structs::Spotify;
 
-    let mut req = Request::builder()
-        .method("GET")
-        .uri("https://api.spotify.com/v1/albums/4aawyAB9vmqN3uQ7FjRGTy/tracks?offset=0&limit=50&market=au&locale=en-AU")
-        .body(Body::empty())
-        .unwrap();
+pub async fn spotify_auth(id: &str, secret: &str) -> ClientCredsSpotify {
+    let creds = Credentials {
+        id: id.to_string(),
+        secret: Some(secret.to_string()),
+    };
 
-    req.headers_mut()
-        .insert("header-name", "header-value".parse().unwrap());
+    let spotify = ClientCredsSpotify::new(creds);
+    spotify.request_token().await.unwrap();
 
-    let res = client.request(req).await;
-    println!("{:#?}", res);
+    spotify
+}
+
+pub async fn spotify_album(ctx: &Context) {
+    let spotify = {
+        let data_read = ctx.data.read().await;
+        data_read.get::<Spotify>().unwrap().clone()
+    };
+    let uri = AlbumId::from_id("1LHSxBpDSoNUrOezwOcLKU").unwrap();
+
+    let _ = spotify.auto_reauth().await;
+
+    let a = spotify.album(uri).await.unwrap();
+
+    let b = a.tracks;
+
+    dbg!(&b.total);
+
+    let uri2 = PlaylistId::from_id("7sdFIvyZMf2PfmbUxUaSzw").unwrap();
+    let a2 = spotify.playlist(uri2, None, None).await.unwrap();
+    let b2 = a2.tracks;
+    dbg!(&b2);
 }

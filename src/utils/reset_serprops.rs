@@ -4,13 +4,12 @@ use serenity::model::id::GuildId;
 use crate::utils::structs::AllSerProps;
 
 pub async fn reset_serprops(ctx: &Context, guild_id: GuildId) -> bool {
-    let allserprops = {
+    let mut allserprops = {
         let data_read = ctx.data.read().await;
         data_read.get::<AllSerProps>().unwrap().clone()
     };
 
-    let mut wait_write = allserprops.write().await;
-    let serprops = wait_write.get_mut(&guild_id).unwrap();
+    let mut serprops = allserprops.get_mut(&guild_id).unwrap().write().await;
 
     let old_serprops = serprops.clone();
     let mut left_vc = false;

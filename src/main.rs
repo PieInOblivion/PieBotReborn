@@ -1,6 +1,7 @@
 mod commands;
 mod utils;
-use crate::utils::structs::{AllSerProps, SerProps};
+use crate::utils::query_spotify::{spotify_album, spotify_auth};
+use crate::utils::structs::{AllSerProps, SerProps, Spotify};
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -61,26 +62,29 @@ impl EventHandler for Handler {
         }
 
         println!("{} is connected!", ready.user.name);
+        // spotify_album(&ctx).await;
     }
 }
 
 #[tokio::main]
 async fn main() {
-    let token = include_str!("../secret/discord");
-
+    let spotify_id = include_str!("../secret/spotifyId");
+    let spotify_secret = include_str!("../secret/spotifySecret");
+    let discord_token = include_str!("../secret/discord");
     let guilds_file = include_str!("../secret/channels");
 
-    let sp: Arc<RwLock<HashMap<GuildId, SerProps>>> = Arc::new(RwLock::new(HashMap::new()));
+    // let spotify = spotify_auth(spotify_id, spotify_secret).await;
+
+    let mut allserprops: HashMap<GuildId, Arc<RwLock<SerProps>>> = HashMap::new();
 
     for line in guilds_file.lines() {
         let guild: GuildId = GuildId(line[..18].parse().unwrap());
         let channel: ChannelId = line[19..].parse().unwrap();
-        let mut n = sp.write().await;
-        n.insert(guild, SerProps::new(channel));
+        allserprops.insert(guild, Arc::new(RwLock::new(SerProps::new(channel))));
     }
 
     let mut client = Client::builder(
-        token,
+        discord_token,
         GatewayIntents::GUILD_VOICE_STATES | GatewayIntents::GUILDS,
     )
     .event_handler(Handler)
@@ -90,7 +94,8 @@ async fn main() {
 
     {
         let mut data = client.data.write().await;
-        data.insert::<AllSerProps>(sp);
+        data.insert::<AllSerProps>(allserprops);
+        data.insert::<Spotify>(spotify);
     }
 
     if let Err(err) = client.start().await {

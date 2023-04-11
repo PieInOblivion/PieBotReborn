@@ -18,13 +18,11 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     }
 
     {
-        let allserprops = {
+        let mut allserprops = {
             let data_read = ctx.data.read().await;
             data_read.get::<AllSerProps>().unwrap().clone()
         };
-
-        let mut wait_write = allserprops.write().await;
-        let serprops = wait_write.get_mut(&guild_id).unwrap();
+        let mut serprops = allserprops.get_mut(&guild_id).unwrap().write().await;
 
         if serprops.playing.is_none() {
             msg_not_playing(ctx, cmd).await;

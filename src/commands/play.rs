@@ -24,17 +24,16 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let user_query: String = arg_to_str(cmd);
     let url_identify = parse_source(&user_query);
 
-    let server_properties = {
+    let mut allserprops = {
         let data_read = ctx.data.read().await;
         data_read.get::<AllSerProps>().unwrap().clone()
     };
-    let mut wait_write = server_properties.write().await;
-    let serprops = wait_write.get_mut(&guild_id).unwrap();
+    let mut serprops = allserprops.get_mut(&guild_id).unwrap().write().await;
 
     if url_identify.search_needed {
         if let Some(song) = yt_search(&user_query).await {
             serprops.request_queue.push(song.clone());
-            msg_request_queue(ctx, cmd, serprops, song).await;
+            msg_request_queue(ctx, cmd, &serprops, song).await;
         } else {
             msg_no_yt_search_result(ctx, cmd, &user_query).await;
         }
@@ -53,7 +52,7 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
                 let len = list.as_ref().unwrap().len();
                 serprops.playlist_queue.append(&mut list.unwrap());
                 serprops.playlist_queue_shuffle();
-                msg_list_queue_added(ctx, cmd, serprops, 1, len).await;
+                msg_list_queue_added(ctx, cmd, &serprops, 1, len).await;
             } else {
                 msg_no_yt_search_result(ctx, cmd, &user_query).await;
             }
@@ -62,7 +61,7 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
         if url_identify.yt_id.is_some() && url_identify.yt_list.is_none() {
             if let Some(song) = yt_id_to_name(url_identify.yt_id.as_ref().unwrap()).await {
                 serprops.request_queue.push(song.clone());
-                msg_request_queue(ctx, cmd, serprops, song).await;
+                msg_request_queue(ctx, cmd, &serprops, song).await;
             } else {
                 msg_no_yt_search_result(ctx, cmd, &user_query).await;
             }
@@ -74,7 +73,7 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
                 let len = list.len();
                 serprops.playlist_queue.append(&mut list);
                 serprops.playlist_queue_shuffle();
-                msg_list_queue_added(ctx, cmd, serprops, 0, len).await;
+                msg_list_queue_added(ctx, cmd, &serprops, 0, len).await;
             } else {
                 msg_no_yt_search_result(ctx, cmd, &user_query).await;
             }
@@ -87,7 +86,7 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
         if url_identify.spot_album.is_some() {}
     }
 
-    drop(wait_write);
+    drop(serprops);
 
     audio_event(ctx, guild_id, voice_channel_id.unwrap()).await;
 }

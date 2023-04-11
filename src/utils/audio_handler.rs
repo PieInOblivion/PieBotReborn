@@ -10,21 +10,18 @@ use crate::utils::structs::{AllSerProps, SerProps};
 pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: ChannelId) {
     // Check if playing already. If so, do nothing.
     let song = {
-        let allserprops = {
+        let mut allserprops = {
             let data_read = ctx.data.read().await;
             data_read.get::<AllSerProps>().unwrap().clone()
         };
-
-        let mut wait_write = allserprops.write().await;
-
-        let serprops = wait_write.get_mut(&guild_id).unwrap();
+        let mut serprops = allserprops.get_mut(&guild_id).unwrap().write().await;
 
         if serprops.playing.is_some() {
             return;
         }
 
-        if !load_next_song(serprops) {
-            drop(wait_write);
+        if !load_next_song(&mut serprops) {
+            drop(serprops);
             reset_serprops(ctx, guild_id).await;
             return;
         }
@@ -74,12 +71,11 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
     let mut call_lock = call.lock().await;
 
     {
-        let allserprops = {
+        let mut allserprops = {
             let data_read = ctx.data.read().await;
             data_read.get::<AllSerProps>().unwrap().clone()
         };
-        let mut wait_write = allserprops.write().await;
-        let serprops = wait_write.get_mut(&guild_id).unwrap();
+        let mut serprops = allserprops.get_mut(&guild_id).unwrap().write().await;
         serprops.playing_handle = Some(call_lock.play_source(source));
     }
 
@@ -96,13 +92,12 @@ struct TrackEndNotifier {
 impl EventHandler for TrackEndNotifier {
     async fn act(&self, _: &EventContext<'_>) -> Option<Event> {
         {
-            let server_properties = {
+            let mut allserprops = {
                 let data_read = self.ctx.data.read().await;
                 data_read.get::<AllSerProps>().unwrap().clone()
             };
 
-            let mut wait_write = server_properties.write().await;
-            let serprops = wait_write.get_mut(&self.guild_id).unwrap();
+            let mut serprops = allserprops.get_mut(&self.guild_id).unwrap().write().await;
 
             serprops.playing = None;
             serprops.playing_handle = None;
