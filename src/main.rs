@@ -1,6 +1,5 @@
 mod commands;
 mod utils;
-use crate::utils::query_spotify::{spotify_album, spotify_auth};
 use crate::utils::structs::{AllSerProps, SerProps, Spotify};
 
 use std::collections::HashMap;
@@ -62,7 +61,6 @@ impl EventHandler for Handler {
         }
 
         println!("{} is connected!", ready.user.name);
-        // spotify_album(&ctx).await;
     }
 }
 
@@ -73,7 +71,7 @@ async fn main() {
     let discord_token = include_str!("../secret/discord");
     let guilds_file = include_str!("../secret/channels");
 
-    // let spotify = spotify_auth(spotify_id, spotify_secret).await;
+    let spotify = Spotify::new(spotify_id.to_string(), spotify_secret.to_string());
 
     let mut allserprops: HashMap<GuildId, Arc<RwLock<SerProps>>> = HashMap::new();
 
@@ -95,7 +93,7 @@ async fn main() {
     {
         let mut data = client.data.write().await;
         data.insert::<AllSerProps>(allserprops);
-        data.insert::<Spotify>(spotify);
+        data.insert::<Spotify>(spotify.await);
     }
 
     if let Err(err) = client.start().await {
