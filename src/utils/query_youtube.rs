@@ -99,7 +99,7 @@ async fn yt_https_request(url: String) -> Option<serde_json::Value> {
 
     let body = to_bytes(res.body_mut()).await.ok()?;
 
-    let response: serde_json::Value = from_slice(&body).ok()?;
+    let json: serde_json::Value = from_slice(&body).ok()?;
 
-    Some(response)
+    Some(json)
 }

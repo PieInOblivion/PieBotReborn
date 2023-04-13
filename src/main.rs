@@ -71,8 +71,7 @@ async fn main() {
     let discord_token = include_str!("../secret/discord");
     let guilds_file = include_str!("../secret/channels");
 
-    let spotify = Spotify::new(spotify_id.to_string(), spotify_secret.to_string());
-
+    let spotify = Spotify::new(spotify_id.to_string(), spotify_secret.to_string()).await;
     let mut allserprops: HashMap<GuildId, Arc<RwLock<SerProps>>> = HashMap::new();
 
     for line in guilds_file.lines() {
@@ -93,7 +92,7 @@ async fn main() {
     {
         let mut data = client.data.write().await;
         data.insert::<AllSerProps>(allserprops);
-        data.insert::<Spotify>(spotify.await);
+        data.insert::<Spotify>(spotify);
     }
 
     if let Err(err) = client.start().await {

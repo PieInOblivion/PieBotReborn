@@ -1,4 +1,5 @@
 use hyper::body::to_bytes;
+use hyper::Method;
 use hyper::{Body, Client, Request};
 use hyper_rustls::HttpsConnectorBuilder;
 
@@ -31,14 +32,16 @@ impl TypeMapKey for Spotify {
     type Value = Spotify;
 }
 
-// TODO: wrap token in arc rwlock. Maybe make token new struct
-// TODO: Decide; individual functions getting passed Spotify, queries part of Spotify. Latter..
-pub struct Spotify {
-    id: String,
-    secret: String,
+struct SpotifyToken {
     token: String,
     token_birth: SystemTime,
     token_expires_in_sec: u64,
+}
+
+pub struct Spotify {
+    id: String,
+    secret: String,
+    token: Arc<RwLock<SpotifyToken>>,
 }
 
 impl Spotify {
@@ -49,28 +52,31 @@ impl Spotify {
         return Spotify {
             id,
             secret,
-            token: new_token,
-            token_birth: SystemTime::now(),
-            token_expires_in_sec: expires,
+            token: Arc::new(RwLock::new(SpotifyToken {
+                token: new_token,
+                token_birth: SystemTime::now(),
+                token_expires_in_sec: expires,
+            })),
         };
     }
     pub async fn get_token(&mut self) -> String {
+        let mut token_info = self.token.write().await;
         let sec_since_refresh = SystemTime::now()
-            .duration_since(self.token_birth)
+            .duration_since(token_info.token_birth)
             .unwrap()
             .as_secs();
         // TODO: modify to return options instead of unwraps
         // 10 second buffer
-        if sec_since_refresh + 10 > self.token_expires_in_sec {
+        if sec_since_refresh + 10 > token_info.token_expires_in_sec {
             let (new_token, expires) = Self::get_token_new(self.id.clone(), self.secret.clone())
                 .await
                 .unwrap();
-            self.token = new_token;
-            self.token_birth = SystemTime::now();
-            self.token_expires_in_sec = expires;
-            self.token.clone()
+            token_info.token = new_token;
+            token_info.token_birth = SystemTime::now();
+            token_info.token_expires_in_sec = expires;
+            token_info.token.clone()
         } else {
-            self.token.clone()
+            token_info.token.clone()
         }
     }
     async fn get_token_new(id: String, secret: String) -> Option<(String, u64)> {
@@ -87,7 +93,7 @@ impl Spotify {
         let client = Client::builder().build::<_, Body>(https);
 
         let req = Request::builder()
-            .method(hyper::Method::POST)
+            .method(Method::POST)
             .uri(auth_url)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .header("Authorization", auth_code)
@@ -101,9 +107,66 @@ impl Spotify {
         let json: Value = from_slice(&body).ok()?;
 
         Some((
-            json["access_token"].to_string(),
+            json["access_token"].as_str()?.to_string(),
             json["expires_in"].as_u64().unwrap(),
         ))
+    }
+    pub async fn get_album_tracks(&mut self, id: String) -> Option<Vec<Song>> {
+        let https = HttpsConnectorBuilder::new()
+            .with_native_roots()
+            .https_only()
+            .enable_http2()
+            .build();
+
+        let client = Client::builder().build::<_, Body>(https);
+
+        let mut next_url = format!(
+            "https://api.spotify.com/v1/albums/{}/tracks?limit=50&offset=0",
+            id
+        );
+
+        let mut album: Vec<Song> = Vec::new();
+
+        loop {
+            let token = Self::get_token(self).await;
+
+            let req = Request::builder()
+                .method(Method::GET)
+                .uri(next_url)
+                .header("Authorization", format!("Bearer {}", token))
+                .body(hyper::Body::empty())
+                .ok()?;
+
+            let res = client.request(req).await.ok()?;
+
+            let body = to_bytes(res.into_body()).await.ok()?;
+
+            let json: serde_json::Value = from_slice(&body).ok()?;
+            for item in json["items"].as_array().unwrap().iter() {
+                let title = item["name"].as_str().unwrap().to_string();
+
+                let artists = item["artists"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|artist| artist["name"].as_str().unwrap())
+                    .collect::<Vec<&str>>()
+                    .join(" ");
+
+                album.push(Song {
+                    id: None,
+                    title: format!("{} {}", artists, title),
+                });
+            }
+
+            next_url = json["next"].as_str().get_or_insert("").to_string();
+
+            if next_url == "" {
+                break;
+            }
+        }
+
+        Some(album)
     }
 }
 
