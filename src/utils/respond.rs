@@ -52,6 +52,18 @@ pub async fn msg_no_yt_search_result(
     send_embed(ctx, cmd, embed).await;
 }
 
+pub async fn msg_no_spotify_result(
+    ctx: &Context,
+    cmd: &ApplicationCommandInteraction,
+    query: &String,
+) {
+    let mut embed = CreateEmbed::default().to_owned();
+    embed.colour(0xff0000);
+    embed.title(format!("Spotify query failed on ID: {}", query));
+
+    send_embed(ctx, cmd, embed).await;
+}
+
 pub async fn msg_request_queue(
     ctx: &Context,
     cmd: &ApplicationCommandInteraction,

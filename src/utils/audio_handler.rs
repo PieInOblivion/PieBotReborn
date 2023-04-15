@@ -4,12 +4,13 @@ use serenity::model::id::{ChannelId, GuildId};
 
 use songbird::{Event, EventContext, EventHandler};
 
+use crate::utils::query_youtube::yt_search;
 use crate::utils::reset_serprops::reset_serprops;
 use crate::utils::structs::{AllSerProps, SerProps};
 
 pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: ChannelId) {
     // Check if playing already. If so, do nothing.
-    let song = {
+    let mut song = {
         let mut allserprops = {
             let data_read = ctx.data.read().await;
             data_read.get::<AllSerProps>().unwrap().clone()
@@ -29,7 +30,15 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
         serprops.playing.clone().unwrap()
     };
 
-    //TODO: The song might require a youtube search if it came from spotify
+    if song.id.is_none() {
+        if let Some(new_song) = yt_search(&song.title).await {
+            song = new_song;
+        } else {
+            // TODO: If no youtube result is found
+            // Send message to serverprops channel_id. Requires new send_embed function
+            // Load next song
+        }
+    }
 
     let source = match songbird::ytdl(format!(
         "https://www.youtube.com/watch?v={}",
