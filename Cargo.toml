@@ -5,7 +5,6 @@ edition = "2021"
 
 [profile.release]
 lto = true
-opt-level = 3
 
 [dependencies]
 tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
