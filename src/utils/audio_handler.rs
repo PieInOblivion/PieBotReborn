@@ -10,7 +10,7 @@ use crate::utils::structs::{AllSerProps, SerProps};
 
 pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: ChannelId) {
     // Check if playing already. If so, do nothing.
-    let mut song = {
+    let song = {
         let mut allserprops = {
             let data_read = ctx.data.read().await;
             data_read.get::<AllSerProps>().unwrap().clone()
@@ -21,7 +21,7 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
             return;
         }
 
-        if !load_next_song(&mut serprops) {
+        if !load_next_song(&mut serprops).await {
             drop(serprops);
             reset_serprops(ctx, guild_id).await;
             return;
@@ -29,16 +29,6 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
 
         serprops.playing.clone().unwrap()
     };
-
-    if song.id.is_none() {
-        if let Some(new_song) = yt_search(&song.title).await {
-            song = new_song;
-        } else {
-            // TODO: If no youtube result is found
-            // Send message to serverprops channel_id. Requires new send_embed function
-            // Load next song
-        }
-    }
 
     let source = match songbird::ytdl(format!(
         "https://www.youtube.com/watch?v={}",
@@ -118,13 +108,21 @@ impl EventHandler for TrackEndNotifier {
     }
 }
 
-fn load_next_song(serprops: &mut SerProps) -> bool {
+async fn load_next_song(serprops: &mut SerProps) -> bool {
     // Individual song requests take priority over playlists
     if serprops.request_queue.len() > 0 {
         serprops.playing = Some(serprops.request_queue.remove(0));
-        return true;
     } else if serprops.playlist_queue.len() > 0 {
         serprops.playing = Some(serprops.playlist_queue.remove(0));
+    }
+
+    // Song has no youtube ID, requires query
+    if serprops.playing.as_ref().unwrap().id.is_none() {
+        if let Some(new_song) = yt_search(&serprops.playing.as_ref().unwrap().title).await {
+            serprops.playing = Some(new_song);
+            return true;
+        }
+    } else {
         return true;
     }
 
