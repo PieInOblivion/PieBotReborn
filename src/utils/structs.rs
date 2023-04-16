@@ -14,7 +14,7 @@ use serenity::prelude::TypeMapKey;
 
 use songbird::tracks::TrackHandle;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use std::time::SystemTime;
 
@@ -117,7 +117,7 @@ impl Spotify {
         ))
     }
 
-    pub async fn get_album_tracks(&mut self, id: &String) -> Option<Vec<Song>> {
+    pub async fn get_album_tracks(&mut self, id: &String) -> Option<VecDeque<Song>> {
         let https = HttpsConnectorBuilder::new()
             .with_native_roots()
             .https_only()
@@ -131,7 +131,7 @@ impl Spotify {
             id
         );
 
-        let mut album: Vec<Song> = Vec::new();
+        let mut album: VecDeque<Song> = VecDeque::new();
 
         loop {
             let json = Self::https_req(self, &client, next_url).await?;
@@ -146,7 +146,7 @@ impl Spotify {
                     .collect::<Vec<&str>>()
                     .join(" ");
 
-                album.push(Song {
+                album.push_back(Song {
                     id: None,
                     title: format!("{} {}", artists, title),
                 });
@@ -162,7 +162,7 @@ impl Spotify {
         Some(album)
     }
 
-    pub async fn get_playlist_tracks(&mut self, id: &String) -> Option<Vec<Song>> {
+    pub async fn get_playlist_tracks(&mut self, id: &String) -> Option<VecDeque<Song>> {
         let https = HttpsConnectorBuilder::new()
             .with_native_roots()
             .https_only()
@@ -176,7 +176,7 @@ impl Spotify {
             id
         );
 
-        let mut playlist: Vec<Song> = Vec::new();
+        let mut playlist: VecDeque<Song> = VecDeque::new();
 
         loop {
             let json = Self::https_req(self, &client, next_url).await?;
@@ -191,7 +191,7 @@ impl Spotify {
                     .collect::<Vec<&str>>()
                     .join(" ");
 
-                playlist.push(Song {
+                playlist.push_back(Song {
                     id: None,
                     title: format!("{} {}", artists, title),
                 });
@@ -260,8 +260,8 @@ impl Spotify {
 #[derive(Clone, Debug)]
 pub struct SerProps {
     pub bot_text_channel: ChannelId,
-    pub request_queue: Vec<Song>,
-    pub playlist_queue: Vec<Song>,
+    pub request_queue: VecDeque<Song>,
+    pub playlist_queue: VecDeque<Song>,
     pub playing: Option<Song>,
     pub playing_handle: Option<TrackHandle>,
 }
@@ -270,15 +270,17 @@ impl SerProps {
     pub fn new(channel_id: ChannelId) -> SerProps {
         return SerProps {
             bot_text_channel: channel_id,
-            request_queue: Vec::new(),
-            playlist_queue: Vec::new(),
+            request_queue: VecDeque::new(),
+            playlist_queue: VecDeque::new(),
             playing: None,
             playing_handle: None,
         };
     }
 
     pub fn playlist_queue_shuffle(&mut self) {
-        self.playlist_queue.shuffle(&mut thread_rng());
+        self.playlist_queue
+            .make_contiguous()
+            .shuffle(&mut thread_rng());
     }
 }
 

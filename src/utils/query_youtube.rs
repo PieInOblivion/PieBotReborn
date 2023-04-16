@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use hyper::body::to_bytes;
 use hyper::{Body, Client, Uri};
 use hyper_rustls::HttpsConnectorBuilder;
@@ -42,12 +44,12 @@ pub async fn yt_id_to_name(id: &String) -> Option<Song> {
     })
 }
 
-pub async fn yt_list_id_to_vec(id: &String) -> Option<Vec<Song>> {
+pub async fn yt_list_id_to_vec(id: &String) -> Option<VecDeque<Song>> {
     let key = include_str!("../../secret/youtube");
 
     let mut next_page_token: String = "".to_string();
 
-    let mut list: Vec<Song> = Vec::new();
+    let mut list: VecDeque<Song> = VecDeque::new();
 
     loop {
         let url = format!(
@@ -64,7 +66,7 @@ pub async fn yt_list_id_to_vec(id: &String) -> Option<Vec<Song>> {
 
         if let Some(res) = response["items"].as_array() {
             for item in res.into_iter() {
-                list.push(Song {
+                list.push_back(Song {
                     id: Some(
                         item["snippet"]["resourceId"]["videoId"]
                             .as_str()

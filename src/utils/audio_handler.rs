@@ -109,22 +109,21 @@ impl EventHandler for TrackEndNotifier {
 }
 
 async fn load_next_song(serprops: &mut SerProps) -> bool {
-    // Individual song requests take priority over playlists
-    if serprops.request_queue.len() > 0 {
-        serprops.playing = Some(serprops.request_queue.remove(0));
-    } else if serprops.playlist_queue.len() > 0 {
-        serprops.playing = Some(serprops.playlist_queue.remove(0));
-    }
+    loop {
+        serprops.playing = serprops
+            .request_queue
+            .pop_front()
+            .or_else(|| serprops.playlist_queue.pop_front());
 
-    // Song has no youtube ID, requires query
-    if serprops.playing.as_ref().unwrap().id.is_none() {
-        if let Some(new_song) = yt_search(&serprops.playing.as_ref().unwrap().title).await {
-            serprops.playing = Some(new_song);
-            return true;
+        if let Some(playing) = &serprops.playing {
+            if playing.id.is_some() {
+                return true;
+            } else if let Some(new_song_data) = yt_search(&playing.title).await {
+                serprops.playing = Some(new_song_data);
+                return true;
+            }
+        } else {
+            return false;
         }
-    } else {
-        return true;
     }
-
-    return false;
 }

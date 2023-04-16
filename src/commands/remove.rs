@@ -29,12 +29,10 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
             return;
         }
 
-        if serprops.request_queue.len() == 0 {
+        if serprops.request_queue.pop_back().is_none() {
             msg_removed_last_song_failed(ctx, cmd).await;
             return;
         }
-
-        serprops.request_queue.pop();
     }
 
     msg_removed_last_song(ctx, cmd).await;

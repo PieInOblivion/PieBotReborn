@@ -33,7 +33,7 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
 
     if url_identify.search_needed {
         if let Some(song) = yt_search(&user_query).await {
-            serprops.request_queue.push(song.clone());
+            serprops.request_queue.push_back(song.clone());
             msg_request_queue(ctx, cmd, &serprops, song).await;
         } else {
             msg_no_yt_search_result(ctx, cmd, &user_query).await;
@@ -49,7 +49,7 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
                 list.as_mut()
                     .unwrap()
                     .retain(|s| s.id != song.as_ref().unwrap().id);
-                serprops.request_queue.push(song.unwrap());
+                serprops.request_queue.push_back(song.unwrap());
                 let len = list.as_ref().unwrap().len();
                 serprops.playlist_queue.append(&mut list.unwrap());
                 serprops.playlist_queue_shuffle();
@@ -61,7 +61,7 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
 
         if url_identify.yt_id.is_some() && url_identify.yt_list.is_none() {
             if let Some(song) = yt_id_to_name(url_identify.yt_id.as_ref().unwrap()).await {
-                serprops.request_queue.push(song.clone());
+                serprops.request_queue.push_back(song.clone());
                 msg_request_queue(ctx, cmd, &serprops, song).await;
             } else {
                 msg_no_yt_search_result(ctx, cmd, &user_query).await;
@@ -91,7 +91,7 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
 
             if let Some(id) = url_identify.spot_track {
                 if let Some(song) = spotify.get_track(&id).await {
-                    serprops.request_queue.push(song.clone());
+                    serprops.request_queue.push_back(song.clone());
                     msg_request_queue(ctx, cmd, &serprops, song).await;
                 } else {
                     msg_no_spotify_result(ctx, cmd, &id).await;

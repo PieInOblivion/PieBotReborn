@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use serenity::client::Context;
 use serenity::model::id::GuildId;
 
@@ -14,8 +16,8 @@ pub async fn reset_serprops(ctx: &Context, guild_id: GuildId) -> bool {
     let old_serprops = serprops.clone();
     let mut left_vc = false;
 
-    serprops.request_queue = Vec::new();
-    serprops.playlist_queue = Vec::new();
+    serprops.request_queue = VecDeque::new();
+    serprops.playlist_queue = VecDeque::new();
     serprops.playing = None;
 
     if serprops.playing_handle.is_some() {
