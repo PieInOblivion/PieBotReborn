@@ -1,6 +1,8 @@
 mod commands;
 mod utils;
-use crate::utils::structs::{AllSerProps, SerProps, Spotify};
+
+use crate::utils::spotify::Spotify;
+use crate::utils::structs::{AllSerProps, SerProps};
 
 use std::collections::HashMap;
 use std::sync::Arc;

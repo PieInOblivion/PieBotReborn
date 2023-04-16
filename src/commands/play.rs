@@ -1,13 +1,14 @@
 use crate::utils::audio_handler::audio_event;
 use crate::utils::identify_source::parse_source;
 use crate::utils::interaction::arg_to_str;
-use crate::utils::query_youtube::{yt_id_to_name, yt_list_id_to_vec, yt_search};
 use crate::utils::respond::{
     msg_list_queue_added, msg_no_spotify_result, msg_no_yt_search_result, msg_request_queue,
     msg_user_not_in_voice_channel,
 };
-use crate::utils::structs::{AllSerProps, Spotify};
+use crate::utils::spotify::Spotify;
+use crate::utils::structs::AllSerProps;
 use crate::utils::user_current_voice_and_guild::voice_and_guild;
+use crate::utils::youtube::{yt_id_to_name, yt_list_id_to_vec, yt_search};
 
 use serenity::builder::CreateApplicationCommand;
 use serenity::client::Context;

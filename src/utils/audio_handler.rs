@@ -4,9 +4,9 @@ use serenity::model::id::{ChannelId, GuildId};
 
 use songbird::{Event, EventContext, EventHandler};
 
-use crate::utils::query_youtube::yt_search;
 use crate::utils::reset_serprops::reset_serprops;
 use crate::utils::structs::{AllSerProps, SerProps};
+use crate::utils::youtube::yt_search;
 
 pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: ChannelId) {
     // Check if playing already. If so, do nothing.
