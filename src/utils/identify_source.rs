@@ -27,7 +27,7 @@ fn yt_id_extract(input: &String) -> Option<String> {
         Regex::new(r"^.*((m\.)?youtu\.be/|e/|vi?/|u/\w/|embed/|\?vi?=|\&vi?=)([^#\&\?]{11}).*")
             .unwrap();
     match re_id.captures(input) {
-        Some(m) => Some(m.get(3).unwrap().as_str().to_string()),
+        Some(m) => Some(m.get(3)?.as_str().to_string()),
         None => None,
     }
 }
@@ -35,7 +35,7 @@ fn yt_id_extract(input: &String) -> Option<String> {
 fn yt_list_extract(input: &String) -> Option<String> {
     let start = input.find("list=");
     if let Some(i) = start {
-        return Some(input[i + 5..i + 39].to_string());
+        return Some(input.get(i + 5..i + 39)?.to_string());
     }
 
     None
@@ -43,11 +43,11 @@ fn yt_list_extract(input: &String) -> Option<String> {
 
 fn spotify_track_extract(input: &String) -> Option<String> {
     if input.contains("spotify:track:") {
-        return Some(input[input.len() - 22..].to_string());
+        return Some(input.get(input.len() - 22..)?.to_string());
     }
 
     if let Some(start) = input.find("spotify.com/track/") {
-        return Some(input[start + 18..start + 40].to_string());
+        return Some(input.get(start + 18..start + 40)?.to_string());
     }
 
     None
@@ -55,11 +55,11 @@ fn spotify_track_extract(input: &String) -> Option<String> {
 
 fn spotify_playlist_extract(input: &String) -> Option<String> {
     if input.contains("spotify:playlist:") {
-        return Some(input[input.len() - 22..].to_string());
+        return Some(input.get(input.len() - 22..)?.to_string());
     }
 
     if let Some(start) = input.find("spotify.com/playlist/") {
-        return Some(input[start + 21..start + 43].to_string());
+        return Some(input.get(start + 21..start + 43)?.to_string());
     }
 
     None
@@ -67,11 +67,11 @@ fn spotify_playlist_extract(input: &String) -> Option<String> {
 
 fn spotify_album_extract(input: &String) -> Option<String> {
     if input.contains("spotify:album:") {
-        return Some(input[input.len() - 22..].to_string());
+        return Some(input.get(input.len() - 22..)?.to_string());
     }
 
     if let Some(start) = input.find("spotify.com/album/") {
-        return Some(input[start + 18..start + 40].to_string());
+        return Some(input.get(start + 18..start + 40)?.to_string());
     }
 
     None
