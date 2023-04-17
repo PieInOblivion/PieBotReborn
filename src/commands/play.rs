@@ -92,8 +92,12 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
 
             if let Some(id) = url_identify.spot_track {
                 if let Some(song) = spotify.get_track(&id).await {
-                    serprops.request_queue.push_back(song.clone());
-                    msg_request_queue(ctx, cmd, &serprops, song).await;
+                    if let Some(song_searched) = yt_search(&song.title).await {
+                        serprops.request_queue.push_back(song_searched.clone());
+                        msg_request_queue(ctx, cmd, &serprops, song_searched).await;
+                    } else {
+                        msg_no_spotify_result(ctx, cmd, &id).await;
+                    }
                 } else {
                     msg_no_spotify_result(ctx, cmd, &id).await;
                 }
