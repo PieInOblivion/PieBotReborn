@@ -7,7 +7,6 @@ use crate::utils::structs::{AllSerProps, SerProps};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use songbird::SerenityInit;
 use tokio::sync::RwLock;
 
 use serenity::async_trait;
@@ -15,7 +14,11 @@ use serenity::client::{Context, EventHandler};
 use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::{GatewayIntents, Ready};
 use serenity::model::id::{ChannelId, GuildId};
+use serenity::model::voice::VoiceState;
 use serenity::Client;
+
+use songbird::SerenityInit;
+use utils::reset_serprops::reset_serprops;
 
 struct Handler;
 
@@ -36,6 +39,31 @@ impl EventHandler for Handler {
                 "rps" => commands::rps::run(&ctx, &cmd).await,
                 _ => (),
             };
+        }
+    }
+
+    async fn voice_state_update(&self, ctx: Context, old: Option<VoiceState>, new: VoiceState) {
+        // TODO: Tidy code
+        if let Some(old_state) = old {
+            all_alone_check(&ctx, old_state).await;
+        }
+
+        all_alone_check(&ctx, new).await;
+
+        async fn all_alone_check(ctx: &Context, vs: VoiceState) {
+            if let Some(channel_id) = vs.channel_id {
+                if let Some(channel) = ctx.cache.guild_channel(channel_id) {
+                    if let Some(user_list) = channel.members(&ctx.cache).await.ok() {
+                        if user_list.len() == 1
+                            && user_list
+                                .iter()
+                                .any(|user| user.user.id == ctx.cache.current_user_id())
+                        {
+                            reset_serprops(&ctx, channel.guild_id).await;
+                        }
+                    }
+                }
+            }
         }
     }
 
