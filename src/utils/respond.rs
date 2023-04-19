@@ -47,7 +47,7 @@ pub async fn msg_no_yt_search_result(
 ) {
     let mut embed = CreateEmbed::default().to_owned();
     embed.colour(0xff0000);
-    embed.title(format!("Search failed: {}", query));
+    embed.title(format!("No search result for: {}", query));
 
     send_embed(ctx, cmd, embed).await;
 }
