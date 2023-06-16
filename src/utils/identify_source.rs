@@ -7,6 +7,7 @@ pub fn parse_source(input: &String) -> SongFilterResult {
     let spot_track = spotify_track_extract(input);
     let spot_list = spotify_playlist_extract(input);
     let spot_album = spotify_album_extract(input);
+
     let search_needed = vec![&yt_id, &yt_list, &spot_track, &spot_list, &spot_album]
         .iter()
         .all(|o| o.is_none());

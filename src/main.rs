@@ -43,14 +43,13 @@ impl EventHandler for Handler {
     }
 
     async fn voice_state_update(&self, ctx: Context, old: Option<VoiceState>, new: VoiceState) {
-        // TODO: Tidy code
         if let Some(old_state) = old {
-            all_alone_check(&ctx, old_state).await;
+            all_alone_check_and_leave(&ctx, old_state).await;
         }
 
-        all_alone_check(&ctx, new).await;
+        all_alone_check_and_leave(&ctx, new).await;
 
-        async fn all_alone_check(ctx: &Context, vs: VoiceState) {
+        async fn all_alone_check_and_leave(ctx: &Context, vs: VoiceState) {
             if let Some(channel_id) = vs.channel_id {
                 if let Some(channel) = ctx.cache.guild_channel(channel_id) {
                     if let Some(user_list) = channel.members(&ctx.cache).await.ok() {

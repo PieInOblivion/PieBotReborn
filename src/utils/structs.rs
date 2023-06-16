@@ -60,18 +60,3 @@ pub struct SongFilterResult {
     pub spot_album: Option<String>,
     pub search_needed: bool,
 }
-
-// TODO: Doesn't work because of lifetimes.
-// #[macro_export]
-// macro_rules! get_serprops {
-//     ($ctx:expr, $gid:expr) => {{
-//         let allserprops = {
-//             let data_read = $ctx.data.read().await;
-//             data_read.get::<AllSerProps>().unwrap().clone()
-//         };
-
-//         let mut wait_write = allserprops.write().await;
-//         let serprops = wait_write.get_mut($gid).unwrap();
-//         std::rc::Rc::new((serprops, wait_write, allserprops))
-//     }};
-// }
