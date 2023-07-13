@@ -12,14 +12,14 @@ pub fn parse_source(input: &String) -> SongFilterResult {
         .iter()
         .all(|o| o.is_none());
 
-    return SongFilterResult {
+    SongFilterResult {
         yt_id,
         yt_list,
         spot_track,
         spot_list,
         spot_album,
         search_needed,
-    };
+    }
 }
 
 fn yt_id_extract(input: &String) -> Option<String> {

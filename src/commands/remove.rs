@@ -12,7 +12,7 @@ use crate::utils::user_current_voice_and_guild::voice_and_guild;
 pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let (_, guild_id, voice_channel_id) = voice_and_guild(ctx, cmd);
 
-    if voice_channel_id == None {
+    if voice_channel_id.is_none() {
         msg_user_not_in_voice_channel(ctx, cmd).await;
         return;
     }

@@ -29,13 +29,13 @@ pub struct SerProps {
 
 impl SerProps {
     pub fn new(channel_id: ChannelId) -> SerProps {
-        return SerProps {
+        SerProps {
             bot_text_channel: channel_id,
             request_queue: VecDeque::new(),
             playlist_queue: VecDeque::new(),
             playing: None,
             playing_handle: None,
-        };
+        }
     }
 
     pub fn playlist_queue_shuffle(&mut self) {

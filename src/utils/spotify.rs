@@ -40,7 +40,7 @@ impl Spotify {
         let (new_token, expires) = Self::get_token_new(id.clone(), secret.clone())
             .await
             .unwrap();
-        return Spotify {
+        Spotify {
             id,
             secret,
             token: Arc::new(RwLock::new(SpotifyToken {
@@ -48,7 +48,7 @@ impl Spotify {
                 token_birth: SystemTime::now(),
                 token_expires_in_sec: expires,
             })),
-        };
+        }
     }
 
     // Will panic if new token cannot be retrieved
@@ -143,7 +143,7 @@ impl Spotify {
 
             next_url = json["next"].as_str().get_or_insert("").to_string();
 
-            if next_url == "" {
+            if next_url.is_empty() {
                 break;
             }
         }
@@ -188,7 +188,7 @@ impl Spotify {
 
             next_url = json["next"].as_str().get_or_insert("").to_string();
 
-            if next_url == "" {
+            if next_url.is_empty() {
                 break;
             }
         }
@@ -242,6 +242,6 @@ impl Spotify {
 
         let body = to_bytes(res.into_body()).await.ok()?;
 
-        Some(from_slice(&body).ok()?)
+        from_slice(&body).ok()
     }
 }

@@ -10,7 +10,7 @@ use crate::utils::structs::Song;
 pub async fn yt_search(q: &String) -> Option<Song> {
     let key = include_str!("../../secret/youtube");
 
-    let encoded_q = q.replace(" ", "%20");
+    let encoded_q = q.replace(' ', "%20");
 
     let url = format!(
         "https://www.googleapis.com/youtube/v3/search?part=snippet&q={}&maxResults=1&type=video&key={}",
@@ -65,7 +65,7 @@ pub async fn yt_list_id_to_vec(id: &String) -> Option<VecDeque<Song>> {
             .to_string();
 
         if let Some(res) = response["items"].as_array() {
-            for item in res.into_iter() {
+            for item in res.iter() {
                 list.push_back(Song {
                     id: Some(
                         item["snippet"]["resourceId"]["videoId"]
@@ -78,7 +78,7 @@ pub async fn yt_list_id_to_vec(id: &String) -> Option<VecDeque<Song>> {
             }
         }
 
-        if next_page_token == "" {
+        if next_page_token.is_empty() {
             break;
         }
     }

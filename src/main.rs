@@ -52,13 +52,13 @@ impl EventHandler for Handler {
         async fn all_alone_check_and_leave(ctx: &Context, vs: VoiceState) {
             if let Some(channel_id) = vs.channel_id {
                 if let Some(channel) = ctx.cache.guild_channel(channel_id) {
-                    if let Some(user_list) = channel.members(&ctx.cache).await.ok() {
+                    if let Ok(user_list) = channel.members(&ctx.cache).await {
                         if user_list.len() == 1
                             && user_list
                                 .iter()
                                 .any(|user| user.user.id == ctx.cache.current_user_id())
                         {
-                            reset_serprops(&ctx, channel.guild_id).await;
+                            reset_serprops(ctx, channel.guild_id).await;
                         }
                     }
                 }

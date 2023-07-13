@@ -18,7 +18,7 @@ use serenity::model::application::interaction::application_command::ApplicationC
 pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     let (_, guild_id, voice_channel_id) = voice_and_guild(ctx, cmd);
 
-    if voice_channel_id == None {
+    if voice_channel_id.is_none() {
         msg_user_not_in_voice_channel(ctx, cmd).await;
         return;
     }
