@@ -7,7 +7,7 @@ use serde_json::from_slice;
 
 use crate::utils::structs::Song;
 
-pub async fn yt_search(q: &String) -> Option<Song> {
+pub async fn yt_search(q: &str) -> Option<Song> {
     let key = include_str!("../../secret/youtube");
 
     let encoded_q = q.replace(' ', "%20");

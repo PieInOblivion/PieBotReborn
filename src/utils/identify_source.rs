@@ -22,7 +22,7 @@ pub fn parse_source(input: &String) -> SongFilterResult {
     }
 }
 
-fn yt_id_extract(input: &String) -> Option<String> {
+fn yt_id_extract(input: &str) -> Option<String> {
     // Don't need to '\/' to escape '/' with rust regex
     let re_id =
         Regex::new(r"^.*((m\.)?youtu\.be/|e/|vi?/|u/\w/|embed/|\?vi?=|\&vi?=)([^#\&\?]{11}).*")
@@ -33,7 +33,7 @@ fn yt_id_extract(input: &String) -> Option<String> {
     }
 }
 
-fn yt_list_extract(input: &String) -> Option<String> {
+fn yt_list_extract(input: &str) -> Option<String> {
     let start = input.find("list=");
     if let Some(i) = start {
         return Some(input.get(i + 5..i + 39)?.to_string());
