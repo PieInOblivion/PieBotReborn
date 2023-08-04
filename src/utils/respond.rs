@@ -5,14 +5,6 @@ use serenity::model::application::interaction::InteractionResponseType::ChannelM
 
 use crate::utils::structs::{SerProps, Song};
 
-pub async fn msg_ping(ctx: &Context, cmd: &ApplicationCommandInteraction) {
-    let mut embed = CreateEmbed::default().to_owned();
-    embed.colour(0xffffff);
-    embed.title("Hey, I'm alive!");
-
-    send_embed(ctx, cmd, embed).await;
-}
-
 pub async fn msg_rps(
     ctx: &Context,
     cmd: &ApplicationCommandInteraction,

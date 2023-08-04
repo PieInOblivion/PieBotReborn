@@ -13,7 +13,7 @@ use serenity::async_trait;
 use serenity::client::{Context, EventHandler};
 use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::{GatewayIntents, Ready};
-use serenity::model::id::{ChannelId, GuildId};
+use serenity::model::id::GuildId;
 use serenity::model::voice::VoiceState;
 use serenity::Client;
 
@@ -35,7 +35,6 @@ impl EventHandler for Handler {
                 "remove" => commands::remove::run(&ctx, &cmd).await,
                 "np" => commands::now_playing::run(&ctx, &cmd).await,
                 "queue" => commands::queue::run(&ctx, &cmd).await,
-                "ping" => commands::ping::run(&ctx, &cmd).await,
                 "rps" => commands::rps::run(&ctx, &cmd).await,
                 _ => (),
             };
@@ -67,11 +66,10 @@ impl EventHandler for Handler {
     }
 
     async fn ready(&self, ctx: Context, ready: Ready) {
-        let guilds_file = include_str!("../secret/channels");
+        let guilds_file = include_str!("../secret/guilds");
 
         for line in guilds_file.lines() {
-            let id: u64 = line[..18].parse().unwrap();
-            let gid = GuildId(id);
+            let gid = GuildId(line.parse().unwrap());
 
             let _commands = GuildId::set_application_commands(&gid, &ctx.http, |commands| {
                 commands
@@ -83,7 +81,6 @@ impl EventHandler for Handler {
                     .create_application_command(|command| commands::remove::register(command))
                     .create_application_command(|command| commands::now_playing::register(command))
                     .create_application_command(|command| commands::queue::register(command))
-                    .create_application_command(|command| commands::ping::register(command))
                     .create_application_command(|command| commands::rps::register(command))
             })
             .await;
@@ -98,15 +95,14 @@ async fn main() {
     let spotify_id = include_str!("../secret/spotifyId");
     let spotify_secret = include_str!("../secret/spotifySecret");
     let discord_token = include_str!("../secret/discord");
-    let guilds_file = include_str!("../secret/channels");
+    let guilds_file = include_str!("../secret/guilds");
 
     let spotify = Spotify::new(spotify_id.to_string(), spotify_secret.to_string()).await;
     let mut allserprops: HashMap<GuildId, Arc<RwLock<SerProps>>> = HashMap::new();
 
     for line in guilds_file.lines() {
-        let guild: GuildId = GuildId(line[..18].parse().unwrap());
-        let channel: ChannelId = line[19..].parse().unwrap();
-        allserprops.insert(guild, Arc::new(RwLock::new(SerProps::new(channel))));
+        let guild: GuildId = GuildId(line.parse().unwrap());
+        allserprops.insert(guild, Arc::new(RwLock::new(SerProps::new())));
     }
 
     let mut client = Client::builder(

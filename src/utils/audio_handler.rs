@@ -38,7 +38,7 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
     {
         Ok(source) => source,
         Err(err) => {
-            println!("Download failed: {:#?}\n{:#?}", song, err);
+            println!("Download failed: {:?}\n{:?}", song.id, err);
             return;
         }
     };
