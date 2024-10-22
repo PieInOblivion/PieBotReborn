@@ -10,12 +10,9 @@ use crate::utils::structs::AllSerProps;
 use crate::utils::user_current_voice_and_guild::voice_and_guild;
 use crate::utils::youtube::{yt_id_to_name, yt_list_id_to_vec, yt_search};
 
-use serenity::builder::CreateApplicationCommand;
-use serenity::client::Context;
-use serenity::model::application::command::CommandOptionType;
-use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
+use serenity::all::{CommandInteraction, Context, CreateCommand, CreateCommandOption, CommandOptionType};
 
-pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
+pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     let (_, guild_id, voice_channel_id) = voice_and_guild(ctx, cmd);
 
     if voice_channel_id.is_none() {
@@ -132,15 +129,8 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     audio_event(ctx, guild_id, voice_channel_id.unwrap()).await;
 }
 
-pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
-    command
-        .name("play")
+pub fn register() -> CreateCommand {
+    CreateCommand::new("play")
         .description("Plays YouTube videos, playlists and Spotify tracks, albums and playlists")
-        .create_option(|option| {
-            option
-                .name("query")
-                .description("Youtube or Spotify URL, or search")
-                .kind(CommandOptionType::String)
-                .required(true)
-        })
+        .add_option(CreateCommandOption::new(CommandOptionType::String, "query", "Youtube or Spotify URL, or search").required(true))
 }

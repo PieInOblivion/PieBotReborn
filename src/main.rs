@@ -7,25 +7,29 @@ use crate::utils::structs::{AllSerProps, SerProps};
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use serenity::prelude::TypeMapKey;
 use tokio::sync::RwLock;
 
-use serenity::async_trait;
-use serenity::client::{Context, EventHandler};
-use serenity::model::application::interaction::Interaction;
-use serenity::model::gateway::{GatewayIntents, Ready};
-use serenity::model::id::GuildId;
-use serenity::model::voice::VoiceState;
-use serenity::Client;
+use reqwest::Client as HttpClient;
+
+use serenity::all::{async_trait, Client, Context, EventHandler, GatewayIntents, GuildId, Interaction, Ready, VoiceState};
 
 use songbird::SerenityInit;
 use utils::reset_serprops::reset_serprops;
+
+
+struct HttpKey;
+
+impl TypeMapKey for HttpKey {
+    type Value = HttpClient;
+}
 
 struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        if let Interaction::ApplicationCommand(cmd) = interaction {
+        if let Interaction::Command(cmd) = interaction {
             match cmd.data.name.as_str() {
                 "play" => commands::play::run(&ctx, &cmd).await,
                 "pause" => commands::pause::run(&ctx, &cmd).await,
@@ -41,27 +45,30 @@ impl EventHandler for Handler {
         }
     }
 
-    async fn voice_state_update(&self, ctx: Context, old: Option<VoiceState>, new: VoiceState) {
-        if let Some(old_state) = old {
-            all_alone_check_and_leave(&ctx, old_state).await;
-        }
+    async fn voice_state_update(&self, ctx: Context, _old: Option<VoiceState>, new: VoiceState) {
+        let channel_id = match new.channel_id {
+            Some(id) => id,
+            None => return
+        };
+    
+        let guild_id = match new.guild_id {
+            Some(id) => id,
+            None => return
+        };
+    
+        // Fetch all voice states for the guild
+        let guild = guild_id.to_guild_cached(&ctx).unwrap().clone();
+        let voice_states = guild.voice_states;
 
-        all_alone_check_and_leave(&ctx, new).await;
+        // Check how many members are in the same channel
+        let members_in_channel: Vec<&VoiceState> = voice_states
+            .values()
+            .filter(|state| state.channel_id == Some(channel_id))
+            .collect();
 
-        async fn all_alone_check_and_leave(ctx: &Context, vs: VoiceState) {
-            if let Some(channel_id) = vs.channel_id {
-                if let Some(channel) = ctx.cache.guild_channel(channel_id) {
-                    if let Ok(user_list) = channel.members(&ctx.cache).await {
-                        if user_list.len() == 1
-                            && user_list
-                                .iter()
-                                .any(|user| user.user.id == ctx.cache.current_user_id())
-                        {
-                            reset_serprops(ctx, channel.guild_id).await;
-                        }
-                    }
-                }
-            }
+        // If only one member (the bot) is left in the channel
+        if members_in_channel.len() == 1 && members_in_channel[0].user_id == ctx.cache.current_user().id {
+            reset_serprops(&ctx, guild_id).await;
         }
     }
 
@@ -69,21 +76,21 @@ impl EventHandler for Handler {
         let guilds_file = include_str!("../secret/guilds");
 
         for line in guilds_file.lines() {
-            let gid = GuildId(line.parse().unwrap());
+            let gid = GuildId::new(line.parse().unwrap());
 
-            let _commands = GuildId::set_application_commands(&gid, &ctx.http, |commands| {
-                commands
-                    .create_application_command(|command| commands::play::register(command))
-                    .create_application_command(|command| commands::pause::register(command))
-                    .create_application_command(|command| commands::resume::register(command))
-                    .create_application_command(|command| commands::skip::register(command))
-                    .create_application_command(|command| commands::stop::register(command))
-                    .create_application_command(|command| commands::remove::register(command))
-                    .create_application_command(|command| commands::now_playing::register(command))
-                    .create_application_command(|command| commands::queue::register(command))
-                    .create_application_command(|command| commands::rps::register(command))
-            })
-            .await;
+            let commands = vec![
+                commands::play::register(),
+                commands::pause::register(),
+                commands::resume::register(),
+                commands::skip::register(),
+                commands::stop::register(),
+                commands::remove::register(),
+                commands::now_playing::register(),
+                commands::queue::register(),
+                commands::rps::register()
+            ];
+
+            let _commands = GuildId::set_commands(gid, &ctx.http, commands).await;
         }
 
         println!("{} is connected!", ready.user.name);
@@ -101,8 +108,8 @@ async fn main() {
     let mut allserprops: HashMap<GuildId, Arc<RwLock<SerProps>>> = HashMap::new();
 
     for line in guilds_file.lines() {
-        let guild: GuildId = GuildId(line.parse().unwrap());
-        allserprops.insert(guild, Arc::new(RwLock::new(SerProps::new())));
+        let gid = GuildId::new(line.parse().unwrap());
+        allserprops.insert(gid, Arc::new(RwLock::new(SerProps::new())));
     }
 
     let mut client = Client::builder(
@@ -111,6 +118,7 @@ async fn main() {
     )
     .event_handler(Handler)
     .register_songbird()
+    .type_map_insert::<HttpKey>(HttpClient::new())
     .await
     .expect("Error creating client");
 

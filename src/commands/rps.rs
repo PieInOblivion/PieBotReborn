@@ -4,12 +4,9 @@ use rand::Rng;
 
 use std::fs;
 
-use serenity::builder::CreateApplicationCommand;
-use serenity::client::Context;
-use serenity::model::application::command::CommandOptionType;
-use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
+use serenity::all::{CommandInteraction, Context, CreateCommand, CreateCommandOption, CommandOptionType};
 
-pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
+pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     let raw_file = fs::read("./secret/rps").unwrap();
     let file_to_string = String::from_utf8_lossy(&raw_file);
     let mut history_str = file_to_string
@@ -21,12 +18,8 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
 
     let usr_choice: &str = cmd
         .data
-        .options
-        .get(0)
-        .unwrap()
+        .options[0]
         .value
-        .as_ref()
-        .unwrap()
         .as_str()
         .unwrap();
 
@@ -45,20 +38,20 @@ pub async fn run(ctx: &Context, cmd: &ApplicationCommandInteraction) {
     }
 }
 
-pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
-    command
-        .name("rps")
+pub fn register() -> CreateCommand {
+    CreateCommand::new("rps")
         .description("Rock, Paper, Scissors!")
-        .create_option(|option| {
-            option
-                .name("choice")
-                .description("Your choice")
-                .required(true)
-                .kind(CommandOptionType::String)
-                .add_string_choice("Rock", "Rock")
-                .add_string_choice("Paper", "Paper")
-                .add_string_choice("Scissors", "Scissors")
-        })
+        .add_option(
+            CreateCommandOption::new(
+                CommandOptionType::String,
+                "choice",
+                "Your choice"
+            )
+            .required(true)
+            .add_string_choice("Rock", "Rock")
+            .add_string_choice("Paper", "Paper")
+            .add_string_choice("Scissors", "Scissors")
+        )
 }
 
 fn save_rps(bot_score: u32, usr_score: u32) {

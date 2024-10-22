@@ -7,16 +7,17 @@ edition = "2021"
 lto = true
 
 [dependencies]
-tokio = { version = "1.29.1", features = ["rt-multi-thread", "macros"] }
-songbird = { version = "0.3.2", features = ["yt-dlp"] }
+tokio = { version = "1.40.0", features = ["rt-multi-thread", "macros"] }
+songbird = { version = "0.4.3", features = ["simd-json"] }
+symphonia = { version = "0.5.4", features = ["aac", "mp3", "isomp4", "alac"] }
 rand = "0.8.5"
-regex = "1.9.1"
-serde_json = "1.0.104"
-hyper = { version = "0.14.27", features = ["http2"] }
-hyper-rustls = { version = "0.24.1", features = ["http2"] }
+regex = "1.11.0"
+serde_json = "1.0.128"
+ureq = { version = "2.10.1", features = ["charset", "json"] }
+reqwest = { version = "0.11.27", features = ["json"]}
 base64_light = "0.1.5"
 
 [dependencies.serenity]
-version = "0.11.6"
+version = "0.12.2"
 default-features = false
-features = ["cache", "client", "gateway", "http", "model", "rustls_backend", "voice"]
+features = ["cache", "client", "gateway", "http", "model", "rustls_backend", "voice", "simd_json"]

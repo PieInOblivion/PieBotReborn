@@ -1,9 +1,6 @@
 use std::collections::VecDeque;
 
-use hyper::body::to_bytes;
-use hyper::{Body, Client, Uri};
-use hyper_rustls::HttpsConnectorBuilder;
-use serde_json::from_slice;
+use serde_json::Value;
 
 use crate::utils::structs::Song;
 
@@ -17,7 +14,7 @@ pub async fn yt_search(q: &str) -> Option<Song> {
         encoded_q, key
     );
 
-    let response = yt_https_request(url).await?;
+    let response = yt_https_request(&url)?;
     let video_id = response["items"][0]["id"]["videoId"].as_str()?;
     let video_title = response["items"][0]["snippet"]["title"].as_str()?;
 
@@ -35,7 +32,7 @@ pub async fn yt_id_to_name(id: &String) -> Option<Song> {
         id, key
     );
 
-    let response = yt_https_request(url).await?;
+    let response = yt_https_request(&url)?;
     let video_title = response["items"][0]["snippet"]["title"].as_str()?;
 
     Some(Song {
@@ -57,7 +54,7 @@ pub async fn yt_list_id_to_vec(id: &String) -> Option<VecDeque<Song>> {
             next_page_token, id, key
         );
 
-        let response = yt_https_request(url.clone()).await?;
+        let response = yt_https_request(&url)?;
 
         next_page_token = response["nextPageToken"]
             .as_str()
@@ -86,22 +83,9 @@ pub async fn yt_list_id_to_vec(id: &String) -> Option<VecDeque<Song>> {
     Some(list)
 }
 
-async fn yt_https_request(url: String) -> Option<serde_json::Value> {
-    let https = HttpsConnectorBuilder::new()
-        .with_native_roots()
-        .https_only()
-        .enable_http2()
-        .build();
-
-    let client = Client::builder().build::<_, Body>(https);
-
-    let uri = url.parse::<Uri>().ok()?;
-
-    let mut res = client.get(uri).await.ok()?;
-
-    let body = to_bytes(res.body_mut()).await.ok()?;
-
-    let json: serde_json::Value = from_slice(&body).ok()?;
-
+fn yt_https_request(url: &String) -> Option<Value> {
+    let agent = ureq::agent();
+    let response = agent.get(url).call().ok()?;
+    let json: Value = response.into_json().ok()?;
     Some(json)
 }

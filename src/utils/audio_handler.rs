@@ -7,6 +7,7 @@ use songbird::{Event, EventContext, EventHandler};
 use crate::utils::reset_serprops::reset_serprops;
 use crate::utils::structs::{AllSerProps, SerProps};
 use crate::utils::youtube::yt_search;
+use crate::HttpKey;
 
 pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: ChannelId) {
     // Check if playing already. If so, do nothing.
@@ -30,18 +31,19 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
         serprops.playing.clone().unwrap()
     };
 
-    let source = match songbird::ytdl(format!(
+    let source_url = format!(
         "https://www.youtube.com/watch?v={}",
         song.id.as_ref().unwrap()
-    ))
-    .await
-    {
-        Ok(source) => source,
-        Err(err) => {
-            println!("Download failed: {:?}\n{:?}", song.id, err);
-            return;
-        }
+    );
+
+    let http_client = {
+        let data = ctx.data.read().await;
+        data.get::<HttpKey>()
+            .cloned()
+            .expect("Guaranteed to exist in the typemap.")
     };
+
+    let source = songbird::input::YoutubeDl::new(http_client, source_url);
 
     let manager = songbird::get(ctx).await.unwrap();
 
@@ -49,7 +51,7 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
         if let Some(call) = manager.get(guild_id) {
             call
         } else {
-            let call = manager.join(guild_id, voice_channel_id).await.0;
+            let call = manager.join(guild_id, voice_channel_id).await.unwrap();
             let mut call_lock = call.lock().await;
 
             call_lock.add_global_event(
@@ -75,7 +77,7 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
             data_read.get::<AllSerProps>().unwrap().clone()
         };
         let mut serprops = allserprops.get_mut(&guild_id).unwrap().write().await;
-        serprops.playing_handle = Some(call_lock.play_source(source));
+        serprops.playing_handle = Some(call_lock.play_input(source.clone().into()));
     }
 
     drop(call_lock);

@@ -1,10 +1,4 @@
-use hyper::body::to_bytes;
-use hyper::client::HttpConnector;
-use hyper::Method;
-use hyper::{Body, Client, Request};
-use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
-
-use serde_json::{from_slice, Value};
+use serde_json::Value;
 
 use base64_light::base64_encode;
 
@@ -78,43 +72,19 @@ impl Spotify {
         let auth = base64_encode(format!("{}:{}", id, secret).as_str());
         let auth_code = format!("Basic {}", auth);
 
-        let https = HttpsConnectorBuilder::new()
-            .with_native_roots()
-            .https_only()
-            .enable_http2()
-            .build();
-
-        let client = Client::builder().build::<_, Body>(https);
-
-        let req = Request::builder()
-            .method(Method::POST)
-            .uri(auth_url)
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .header("Authorization", auth_code)
-            .body(hyper::Body::from("grant_type=client_credentials"))
-            .ok()?;
-
-        let res = client.request(req).await.ok()?;
-
-        let body = to_bytes(res.into_body()).await.ok()?;
-
-        let json: Value = from_slice(&body).ok()?;
+        let response: Value = ureq::post(auth_url)
+            .set("Content-Type", "application/x-www-form-urlencoded")
+            .set("Authorization", &auth_code)
+            .send_string("grant_type=client_credentials")
+            .ok()?.into_json().unwrap();
 
         Some((
-            json["access_token"].as_str()?.to_string(),
-            json["expires_in"].as_u64()?,
+            response["access_token"].as_str()?.to_string(),
+            response["expires_in"].as_u64()?,
         ))
     }
 
     pub async fn get_album_tracks(&mut self, id: &String) -> Option<VecDeque<Song>> {
-        let https = HttpsConnectorBuilder::new()
-            .with_native_roots()
-            .https_only()
-            .enable_http2()
-            .build();
-
-        let client = Client::builder().build::<_, Body>(https);
-
         let mut next_url = format!(
             "https://api.spotify.com/v1/albums/{}/tracks?limit=50&offset=0",
             id
@@ -123,7 +93,7 @@ impl Spotify {
         let mut album: VecDeque<Song> = VecDeque::new();
 
         loop {
-            let json = Self::https_req(self, &client, next_url).await?;
+            let json = Self::https_req(self, &next_url).await?;
 
             for item in json["items"].as_array()?.iter() {
                 let title = item["name"].as_str()?.to_string();
@@ -152,14 +122,6 @@ impl Spotify {
     }
 
     pub async fn get_playlist_tracks(&mut self, id: &String) -> Option<VecDeque<Song>> {
-        let https = HttpsConnectorBuilder::new()
-            .with_native_roots()
-            .https_only()
-            .enable_http2()
-            .build();
-
-        let client = Client::builder().build::<_, Body>(https);
-
         let mut next_url = format!(
             "https://api.spotify.com/v1/playlists/{}/tracks?limit=100&offset=0",
             id
@@ -168,7 +130,7 @@ impl Spotify {
         let mut playlist: VecDeque<Song> = VecDeque::new();
 
         loop {
-            let json = Self::https_req(self, &client, next_url).await?;
+            let json = Self::https_req(self, &next_url).await?;
 
             for item in json["items"].as_array()?.iter() {
                 let title = item["track"]["name"].as_str()?.to_string();
@@ -197,17 +159,9 @@ impl Spotify {
     }
 
     pub async fn get_track(&mut self, id: &String) -> Option<Song> {
-        let https = HttpsConnectorBuilder::new()
-            .with_native_roots()
-            .https_only()
-            .enable_http2()
-            .build();
-
-        let client = Client::builder().build::<_, Body>(https);
-
         let url = format!("https://api.spotify.com/v1/tracks/{}", id);
 
-        let json = Self::https_req(self, &client, url).await?;
+        let json = Self::https_req(self, &url).await?;
 
         let title = json["name"].as_str()?.to_string();
 
@@ -226,22 +180,13 @@ impl Spotify {
 
     async fn https_req(
         &mut self,
-        client: &hyper::Client<HttpsConnector<HttpConnector>>,
-        next_url: String,
+        url: &String,
     ) -> Option<serde_json::Value> {
         let token = Self::get_token(self).await;
 
-        let req = Request::builder()
-            .method(Method::GET)
-            .uri(next_url)
-            .header("Authorization", format!("Bearer {}", token))
-            .body(hyper::Body::empty())
-            .ok()?;
-
-        let res = client.request(req).await.ok()?;
-
-        let body = to_bytes(res.into_body()).await.ok()?;
-
-        from_slice(&body).ok()
+        ureq::get(url)
+        .set("Authorization", &format!("Bearer {}", token))
+        .call()
+        .ok()?.into_json().unwrap()
     }
 }

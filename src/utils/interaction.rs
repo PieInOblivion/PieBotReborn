@@ -1,10 +1,8 @@
-use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
+use serenity::all::CommandInteraction;
 
-pub fn arg_to_str(cmd: &ApplicationCommandInteraction) -> String {
+pub fn arg_to_str(cmd: &CommandInteraction) -> String {
     cmd.data.options[0]
         .value
-        .clone()
-        .unwrap()
         .as_str()
         .unwrap()
         .to_string()
