@@ -83,7 +83,7 @@ pub async fn yt_list_id_to_vec(id: &String) -> Option<VecDeque<Song>> {
     Some(list)
 }
 
-fn yt_https_request(url: &String) -> Option<Value> {
+fn yt_https_request(url: &str) -> Option<Value> {
     let agent = ureq::agent();
     let response = agent.get(url).call().ok()?;
     let json: Value = response.into_json().ok()?;

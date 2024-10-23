@@ -1,14 +1,14 @@
 use crate::utils::structs::SongFilterResult;
 use regex::Regex;
 
-pub fn parse_source(input: &String) -> SongFilterResult {
+pub fn parse_source(input: &str) -> SongFilterResult {
     let yt_id = yt_id_extract(input);
     let yt_list = yt_list_extract(input);
     let spot_track = spotify_track_extract(input);
     let spot_list = spotify_playlist_extract(input);
     let spot_album = spotify_album_extract(input);
 
-    let search_needed = vec![&yt_id, &yt_list, &spot_track, &spot_list, &spot_album]
+    let search_needed = [&yt_id, &yt_list, &spot_track, &spot_list, &spot_album]
         .iter()
         .all(|o| o.is_none());
 
@@ -42,7 +42,7 @@ fn yt_list_extract(input: &str) -> Option<String> {
     None
 }
 
-fn spotify_track_extract(input: &String) -> Option<String> {
+fn spotify_track_extract(input: &str) -> Option<String> {
     if input.contains("spotify:track:") {
         return Some(input.get(input.len() - 22..)?.to_string());
     }
@@ -54,7 +54,7 @@ fn spotify_track_extract(input: &String) -> Option<String> {
     None
 }
 
-fn spotify_playlist_extract(input: &String) -> Option<String> {
+fn spotify_playlist_extract(input: &str) -> Option<String> {
     if input.contains("spotify:playlist:") {
         return Some(input.get(input.len() - 22..)?.to_string());
     }
@@ -66,7 +66,7 @@ fn spotify_playlist_extract(input: &String) -> Option<String> {
     None
 }
 
-fn spotify_album_extract(input: &String) -> Option<String> {
+fn spotify_album_extract(input: &str) -> Option<String> {
     if input.contains("spotify:album:") {
         return Some(input.get(input.len() - 22..)?.to_string());
     }

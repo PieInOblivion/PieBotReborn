@@ -180,7 +180,7 @@ impl Spotify {
 
     async fn https_req(
         &mut self,
-        url: &String,
+        url: &str,
     ) -> Option<serde_json::Value> {
         let token = Self::get_token(self).await;
 
