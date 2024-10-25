@@ -45,30 +45,35 @@ impl EventHandler for Handler {
         }
     }
 
-    async fn voice_state_update(&self, ctx: Context, _old: Option<VoiceState>, new: VoiceState) {
-        let channel_id = match new.channel_id {
-            Some(id) => id,
-            None => return
-        };
-    
-        let guild_id = match new.guild_id {
-            Some(id) => id,
-            None => return
-        };
-    
-        // Fetch all voice states for the guild
-        let guild = guild_id.to_guild_cached(&ctx).unwrap().clone();
-        let voice_states = guild.voice_states;
+    async fn voice_state_update(&self, ctx: Context, old: Option<VoiceState>, new: VoiceState) {
+        if let Some(old_state) = old {
+            all_alone_check_and_leave(&ctx, old_state).await;
+        }
 
-        // Check how many members are in the same channel
-        let members_in_channel: Vec<&VoiceState> = voice_states
-            .values()
-            .filter(|state| state.channel_id == Some(channel_id))
-            .collect();
+        all_alone_check_and_leave(&ctx, new).await;
 
-        // If only one member (the bot) is left in the channel
-        if members_in_channel.len() == 1 && members_in_channel[0].user_id == ctx.cache.current_user().id {
-            reset_serprops(&ctx, guild_id).await;
+        async fn all_alone_check_and_leave(ctx: &Context, vs: VoiceState) {
+            let channel_id = match vs.channel_id {
+                Some(id) => id,
+                None => return
+            };
+
+            let guild_id = match vs.guild_id {
+                Some(id) => id,
+                None => return
+            };
+
+            let guild = guild_id.to_guild_cached(&ctx).unwrap().clone();
+            let voice_states = guild.voice_states;
+
+            let members_in_channel: Vec<&VoiceState> = voice_states
+                .values()
+                .filter(|state| state.channel_id == Some(channel_id))
+                .collect();
+
+            if members_in_channel.len() == 1 && members_in_channel[0].user_id == ctx.cache.current_user().id {
+                reset_serprops(&ctx, guild_id).await;
+            }
         }
     }
 
