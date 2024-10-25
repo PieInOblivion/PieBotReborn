@@ -38,9 +38,7 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
 
     let http_client = {
         let data = ctx.data.read().await;
-        data.get::<HttpKey>()
-            .cloned()
-            .expect("Guaranteed to exist in the typemap.")
+        data.get::<HttpKey>().cloned().unwrap()
     };
 
     let source = songbird::input::YoutubeDl::new(http_client, source_url);
