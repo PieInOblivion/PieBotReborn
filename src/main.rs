@@ -72,7 +72,7 @@ impl EventHandler for Handler {
                 .collect();
 
             if members_in_channel.len() == 1 && members_in_channel[0].user_id == ctx.cache.current_user().id {
-                reset_serprops(&ctx, guild_id).await;
+                reset_serprops(ctx, guild_id).await;
             }
         }
     }
