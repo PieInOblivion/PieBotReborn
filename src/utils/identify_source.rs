@@ -8,7 +8,7 @@ static YT_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 static YT_LIST_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"list=([A-Za-z0-9_-]{34})").unwrap()
+    Regex::new(r"list=([A-Za-z0-9_-]{34,41})").unwrap()
 });
 
 static SPOTIFY_TRACK_REGEX: LazyLock<Regex> = LazyLock::new(|| {
