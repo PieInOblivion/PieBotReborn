@@ -1,10 +1,10 @@
+use serde_json::Value;
 use std::collections::VecDeque;
 
-use serde_json::Value;
-
+use crate::HttpKey;
 use crate::utils::structs::Song;
 
-pub async fn yt_search(q: &str) -> Option<Song> {
+pub async fn yt_search(ctx: &serenity::all::Context, q: &str) -> Option<Song> {
     let key = include_str!("../../secret/youtube");
 
     let encoded_q = q.replace(' ', "%20");
@@ -14,7 +14,7 @@ pub async fn yt_search(q: &str) -> Option<Song> {
         encoded_q, key
     );
 
-    let response = yt_https_request(&url)?;
+    let response = yt_https_request(ctx, &url).await?;
     let video_id = response["items"][0]["id"]["videoId"].as_str()?;
     let video_title = response["items"][0]["snippet"]["title"].as_str()?;
 
@@ -24,7 +24,7 @@ pub async fn yt_search(q: &str) -> Option<Song> {
     })
 }
 
-pub async fn yt_id_to_name(id: &String) -> Option<Song> {
+pub async fn yt_id_to_name(ctx: &serenity::all::Context, id: &String) -> Option<Song> {
     let key = include_str!("../../secret/youtube");
 
     let url = format!(
@@ -32,7 +32,7 @@ pub async fn yt_id_to_name(id: &String) -> Option<Song> {
         id, key
     );
 
-    let response = yt_https_request(&url)?;
+    let response = yt_https_request(ctx, &url).await?;
     let video_title = response["items"][0]["snippet"]["title"].as_str()?;
 
     Some(Song {
@@ -41,7 +41,10 @@ pub async fn yt_id_to_name(id: &String) -> Option<Song> {
     })
 }
 
-pub async fn yt_list_id_to_vec(id: &String) -> Option<VecDeque<Song>> {
+pub async fn yt_list_id_to_vec(
+    ctx: &serenity::all::Context,
+    id: &String,
+) -> Option<VecDeque<Song>> {
     let key = include_str!("../../secret/youtube");
 
     let mut next_page_token: String = "".to_string();
@@ -54,7 +57,7 @@ pub async fn yt_list_id_to_vec(id: &String) -> Option<VecDeque<Song>> {
             next_page_token, id, key
         );
 
-        let response = yt_https_request(&url)?;
+        let response = yt_https_request(ctx, &url).await?;
 
         next_page_token = response["nextPageToken"]
             .as_str()
@@ -83,9 +86,13 @@ pub async fn yt_list_id_to_vec(id: &String) -> Option<VecDeque<Song>> {
     Some(list)
 }
 
-fn yt_https_request(url: &str) -> Option<Value> {
-    let agent = ureq::agent();
-    let response = agent.get(url).call().ok()?;
-    let json: Value = response.into_json().ok()?;
-    Some(json)
+async fn yt_https_request(ctx: &serenity::all::Context, url: &str) -> Option<Value> {
+    let http_client = {
+        let data = ctx.data.read().await;
+        data.get::<HttpKey>().cloned().unwrap()
+    };
+
+    let response = http_client.get(url).send().await.ok()?;
+
+    response.json().await.ok()
 }

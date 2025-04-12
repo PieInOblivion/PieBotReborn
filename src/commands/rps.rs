@@ -4,7 +4,9 @@ use rand::Rng;
 
 use std::fs;
 
-use serenity::all::{CommandInteraction, Context, CreateCommand, CreateCommandOption, CommandOptionType};
+use serenity::all::{
+    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
+};
 
 pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     let raw_file = fs::read("./secret/rps").unwrap();
@@ -16,14 +18,9 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     let bot_score: u32 = history_str.next().unwrap();
     let usr_score: u32 = history_str.next().unwrap();
 
-    let usr_choice: &str = cmd
-        .data
-        .options[0]
-        .value
-        .as_str()
-        .unwrap();
+    let usr_choice: &str = cmd.data.options[0].value.as_str().unwrap();
 
-    let bot_choice: &str = ["Rock", "Paper", "Scissors"][rand::thread_rng().gen_range(0..=2)];
+    let bot_choice: &str = ["Rock", "Paper", "Scissors"][rand::rng().random_range(0..=2)];
 
     match (bot_choice, usr_choice) {
         ("Rock", "Scissors") | ("Scissors", "Paper") | ("Paper", "Rock") => {
@@ -42,15 +39,11 @@ pub fn register() -> CreateCommand {
     CreateCommand::new("rps")
         .description("Rock, Paper, Scissors!")
         .add_option(
-            CreateCommandOption::new(
-                CommandOptionType::String,
-                "choice",
-                "Your choice"
-            )
-            .required(true)
-            .add_string_choice("Rock", "Rock")
-            .add_string_choice("Paper", "Paper")
-            .add_string_choice("Scissors", "Scissors")
+            CreateCommandOption::new(CommandOptionType::String, "choice", "Your choice")
+                .required(true)
+                .add_string_choice("Rock", "Rock")
+                .add_string_choice("Paper", "Paper")
+                .add_string_choice("Scissors", "Scissors"),
         )
 }
 

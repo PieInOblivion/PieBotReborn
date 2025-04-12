@@ -1,7 +1,5 @@
-use serde_json::Value;
-
 use base64_light::base64_encode;
-
+use serde_json::Value;
 use serenity::prelude::TypeMapKey;
 
 use std::collections::VecDeque;
@@ -10,6 +8,7 @@ use std::time::SystemTime;
 
 use tokio::sync::RwLock;
 
+use crate::HttpKey;
 use crate::utils::structs::Song;
 
 impl TypeMapKey for Spotify {
@@ -31,33 +30,30 @@ pub struct Spotify {
 
 impl Spotify {
     pub async fn new(id: String, secret: String) -> Spotify {
-        let (new_token, expires) = Self::get_token_new(id.clone(), secret.clone())
-            .await
-            .unwrap();
         Spotify {
             id,
             secret,
             token: Arc::new(RwLock::new(SpotifyToken {
-                token: new_token,
+                token: String::new(),
                 token_birth: SystemTime::now(),
-                token_expires_in_sec: expires,
+                token_expires_in_sec: 0, // Token will refresh on first use
             })),
         }
     }
 
-    // Will panic if new token cannot be retrieved
-    async fn get_token(&mut self) -> String {
+    async fn get_token(&mut self, ctx: &serenity::all::Context) -> String {
         let mut token_info = self.token.write().await;
         let sec_since_refresh = SystemTime::now()
             .duration_since(token_info.token_birth)
             .unwrap()
             .as_secs();
 
-        // 10 second buffer
-        if sec_since_refresh + 10 > token_info.token_expires_in_sec {
-            let (new_token, expires) = Self::get_token_new(self.id.clone(), self.secret.clone())
-                .await
-                .unwrap();
+        // 10 second buffer or empty token
+        if sec_since_refresh + 10 > token_info.token_expires_in_sec || token_info.token.is_empty() {
+            let (new_token, expires) =
+                Self::get_token_new(ctx, self.id.clone(), self.secret.clone())
+                    .await
+                    .unwrap();
             token_info.token = new_token;
             token_info.token_birth = SystemTime::now();
             token_info.token_expires_in_sec = expires;
@@ -67,24 +63,42 @@ impl Spotify {
         }
     }
 
-    async fn get_token_new(id: String, secret: String) -> Option<(String, u64)> {
+    async fn get_token_new(
+        ctx: &serenity::all::Context,
+        id: String,
+        secret: String,
+    ) -> Option<(String, u64)> {
         let auth_url = "https://accounts.spotify.com/api/token";
         let auth = base64_encode(format!("{}:{}", id, secret).as_str());
         let auth_code = format!("Basic {}", auth);
 
-        let response: Value = ureq::post(auth_url)
-            .set("Content-Type", "application/x-www-form-urlencoded")
-            .set("Authorization", &auth_code)
-            .send_string("grant_type=client_credentials")
-            .ok()?.into_json().unwrap();
+        let http_client = {
+            let data_read = ctx.data.read().await;
+            data_read.get::<HttpKey>().cloned().unwrap()
+        };
+
+        let response = http_client
+            .post(auth_url)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Authorization", &auth_code)
+            .body("grant_type=client_credentials")
+            .send()
+            .await
+            .ok()?;
+
+        let json: Value = response.json().await.ok()?;
 
         Some((
-            response["access_token"].as_str()?.to_string(),
-            response["expires_in"].as_u64()?,
+            json["access_token"].as_str()?.to_string(),
+            json["expires_in"].as_u64()?,
         ))
     }
 
-    pub async fn get_album_tracks(&mut self, id: &String) -> Option<VecDeque<Song>> {
+    pub async fn get_album_tracks(
+        &mut self,
+        ctx: &serenity::all::Context,
+        id: &String,
+    ) -> Option<VecDeque<Song>> {
         let mut next_url = format!(
             "https://api.spotify.com/v1/albums/{}/tracks?limit=50&offset=0",
             id
@@ -93,7 +107,7 @@ impl Spotify {
         let mut album: VecDeque<Song> = VecDeque::new();
 
         loop {
-            let json = Self::https_req(self, &next_url).await?;
+            let json = Self::https_req(self, ctx, &next_url).await?;
 
             for item in json["items"].as_array()?.iter() {
                 let title = item["name"].as_str()?.to_string();
@@ -121,7 +135,11 @@ impl Spotify {
         Some(album)
     }
 
-    pub async fn get_playlist_tracks(&mut self, id: &String) -> Option<VecDeque<Song>> {
+    pub async fn get_playlist_tracks(
+        &mut self,
+        ctx: &serenity::all::Context,
+        id: &String,
+    ) -> Option<VecDeque<Song>> {
         let mut next_url = format!(
             "https://api.spotify.com/v1/playlists/{}/tracks?limit=100&offset=0",
             id
@@ -130,7 +148,7 @@ impl Spotify {
         let mut playlist: VecDeque<Song> = VecDeque::new();
 
         loop {
-            let json = Self::https_req(self, &next_url).await?;
+            let json = Self::https_req(self, ctx, &next_url).await?;
 
             for item in json["items"].as_array()?.iter() {
                 let title = item["track"]["name"].as_str()?.to_string();
@@ -158,10 +176,10 @@ impl Spotify {
         Some(playlist)
     }
 
-    pub async fn get_track(&mut self, id: &String) -> Option<Song> {
+    pub async fn get_track(&mut self, ctx: &serenity::all::Context, id: &String) -> Option<Song> {
         let url = format!("https://api.spotify.com/v1/tracks/{}", id);
 
-        let json = Self::https_req(self, &url).await?;
+        let json = Self::https_req(self, ctx, &url).await?;
 
         let title = json["name"].as_str()?.to_string();
 
@@ -180,13 +198,23 @@ impl Spotify {
 
     async fn https_req(
         &mut self,
+        ctx: &serenity::all::Context,
         url: &str,
     ) -> Option<serde_json::Value> {
-        let token = Self::get_token(self).await;
+        let token = Self::get_token(self, ctx).await;
 
-        ureq::get(url)
-        .set("Authorization", &format!("Bearer {}", token))
-        .call()
-        .ok()?.into_json().unwrap()
+        let http_client = {
+            let data_read = ctx.data.read().await;
+            data_read.get::<HttpKey>().cloned().unwrap()
+        };
+
+        let response = http_client
+            .get(url)
+            .header("Authorization", &format!("Bearer {}", token))
+            .send()
+            .await
+            .ok()?;
+
+        response.json().await.ok()
     }
 }

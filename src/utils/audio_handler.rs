@@ -4,10 +4,10 @@ use serenity::model::id::{ChannelId, GuildId};
 
 use songbird::{Event, EventContext, EventHandler};
 
+use crate::HttpKey;
 use crate::utils::reset_serprops::reset_serprops;
 use crate::utils::structs::{AllSerProps, SerProps};
 use crate::utils::youtube::yt_search;
-use crate::HttpKey;
 
 pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: ChannelId) {
     // Check if playing already. If so, do nothing.
@@ -22,7 +22,7 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
             return;
         }
 
-        if !load_next_song(&mut serprops).await {
+        if !load_next_song(ctx, &mut serprops).await {
             drop(serprops);
             reset_serprops(ctx, guild_id).await;
             return;
@@ -108,7 +108,7 @@ impl EventHandler for TrackEndNotifier {
     }
 }
 
-async fn load_next_song(serprops: &mut SerProps) -> bool {
+async fn load_next_song(ctx: &Context, serprops: &mut SerProps) -> bool {
     loop {
         serprops.playing = serprops
             .request_queue
@@ -118,7 +118,7 @@ async fn load_next_song(serprops: &mut SerProps) -> bool {
         if let Some(playing) = &serprops.playing {
             if playing.id.is_some() {
                 return true;
-            } else if let Some(new_song_data) = yt_search(&playing.title).await {
+            } else if let Some(new_song_data) = yt_search(ctx, &playing.title).await {
                 serprops.playing = Some(new_song_data);
                 return true;
             }

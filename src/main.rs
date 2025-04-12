@@ -12,11 +12,13 @@ use tokio::sync::RwLock;
 
 use reqwest::Client as HttpClient;
 
-use serenity::all::{async_trait, Client, Context, EventHandler, GatewayIntents, GuildId, Interaction, Ready, VoiceState};
+use serenity::all::{
+    Client, Context, EventHandler, GatewayIntents, GuildId, Interaction, Ready, VoiceState,
+    async_trait,
+};
 
 use songbird::SerenityInit;
 use utils::reset_serprops::reset_serprops;
-
 
 struct HttpKey;
 
@@ -55,12 +57,12 @@ impl EventHandler for Handler {
         async fn all_alone_check_and_leave(ctx: &Context, vs: VoiceState) {
             let channel_id = match vs.channel_id {
                 Some(id) => id,
-                None => return
+                None => return,
             };
 
             let guild_id = match vs.guild_id {
                 Some(id) => id,
-                None => return
+                None => return,
             };
 
             let guild = guild_id.to_guild_cached(&ctx).unwrap().clone();
@@ -71,7 +73,9 @@ impl EventHandler for Handler {
                 .filter(|state| state.channel_id == Some(channel_id))
                 .collect();
 
-            if members_in_channel.len() == 1 && members_in_channel[0].user_id == ctx.cache.current_user().id {
+            if members_in_channel.len() == 1
+                && members_in_channel[0].user_id == ctx.cache.current_user().id
+            {
                 reset_serprops(ctx, guild_id).await;
             }
         }
@@ -92,7 +96,7 @@ impl EventHandler for Handler {
                 commands::remove::register(),
                 commands::now_playing::register(),
                 commands::queue::register(),
-                commands::rps::register()
+                commands::rps::register(),
             ];
 
             let _commands = GuildId::set_commands(gid, &ctx.http, commands).await;

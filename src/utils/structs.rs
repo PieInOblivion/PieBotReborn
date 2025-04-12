@@ -7,7 +7,6 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 
 use rand::seq::SliceRandom;
-use rand::thread_rng;
 
 use tokio::sync::RwLock;
 
@@ -38,7 +37,7 @@ impl SerProps {
     pub fn playlist_queue_shuffle(&mut self) {
         self.playlist_queue
             .make_contiguous()
-            .shuffle(&mut thread_rng());
+            .shuffle(&mut rand::rng());
     }
 }
 
