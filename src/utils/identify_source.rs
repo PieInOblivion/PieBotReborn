@@ -1,5 +1,5 @@
 use crate::utils::structs::SongFilterResult;
-use regex::Regex;
+use regex_lite::Regex;
 use std::sync::LazyLock;
 
 // Don't need to '\/' to escape '/' with rust regex
