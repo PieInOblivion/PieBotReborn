@@ -248,5 +248,5 @@ async fn send_embed(ctx: &Context, cmd: &CommandInteraction, embed: CreateEmbed<
     let irm = CreateInteractionResponseMessage::new().embed(embed);
     let ir = CreateInteractionResponse::Message(irm);
 
-    cmd.create_response(&ctx.http, ir).await.unwrap();
+    let _ = cmd.create_response(&ctx.http, ir).await;
 }
