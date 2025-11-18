@@ -124,11 +124,13 @@ async fn main() {
         allserprops.insert(*gid, Arc::new(RwLock::new(ServerProps::new())));
     }
 
+    let songbird = Songbird::serenity();
+
     let bot_data = Arc::new(BotData {
         all_ser_props: allserprops,
         spotify,
         http: HttpClient::new(),
-        songbird: Songbird::serenity(),
+        songbird: songbird.clone(),
     });
 
     let mut client = Client::builder(
@@ -136,6 +138,7 @@ async fn main() {
         GatewayIntents::GUILD_VOICE_STATES | GatewayIntents::GUILDS,
     )
     .event_handler(Handler)
+    .voice_manager::<Songbird>(songbird)
     .data(bot_data)
     .await
     .expect("Error creating client");
