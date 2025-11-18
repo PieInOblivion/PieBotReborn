@@ -17,11 +17,10 @@ struct SpotifyToken {
     token_expires_in_sec: u64,
 }
 
-#[derive(Clone)]
 pub struct Spotify {
     id: Arc<str>,
     secret: Arc<str>,
-    token: Arc<RwLock<SpotifyToken>>,
+    token: RwLock<SpotifyToken>,
 }
 
 impl Spotify {
@@ -29,11 +28,11 @@ impl Spotify {
         Spotify {
             id: Arc::from(id),
             secret: Arc::from(secret),
-            token: Arc::new(RwLock::new(SpotifyToken {
+            token: RwLock::new(SpotifyToken {
                 token: String::new(),
                 token_birth: SystemTime::now(),
                 token_expires_in_sec: 0, // Token will refresh on first use
-            })),
+            }),
         }
     }
 
