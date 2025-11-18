@@ -118,10 +118,10 @@ async fn main() {
         .collect();
 
     let spotify = Spotify::new(spotify_id.to_string(), spotify_secret.to_string()).await;
-    let mut allserprops: HashMap<GuildId, Arc<RwLock<ServerProps>>> = HashMap::new();
+    let mut allserprops: HashMap<GuildId, RwLock<ServerProps>> = HashMap::new();
 
     for gid in &guild_ids {
-        allserprops.insert(*gid, Arc::new(RwLock::new(ServerProps::new())));
+        allserprops.insert(*gid, RwLock::new(ServerProps::new()));
     }
 
     let songbird = Songbird::serenity();

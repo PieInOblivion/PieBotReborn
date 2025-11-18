@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use serenity::async_trait;
@@ -109,7 +108,7 @@ impl EventHandler for TrackEndNotifier {
     }
 }
 
-async fn load_next_song(ctx: &Context, serprops_lock: &Arc<RwLock<ServerProps>>) -> Option<Song> {
+async fn load_next_song(ctx: &Context, serprops_lock: &RwLock<ServerProps>) -> Option<Song> {
     loop {
         let option_song = {
             let mut serprops = serprops_lock.write().await;

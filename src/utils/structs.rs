@@ -14,7 +14,7 @@ use crate::utils::spotify::Spotify;
 use reqwest::Client as HttpClient;
 
 pub struct BotData {
-    pub all_ser_props: HashMap<GuildId, Arc<RwLock<ServerProps>>>,
+    pub all_ser_props: HashMap<GuildId, RwLock<ServerProps>>,
     pub spotify: Spotify,
     pub http: HttpClient,
     pub songbird: Arc<Songbird>,
