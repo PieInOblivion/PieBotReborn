@@ -1,4 +1,4 @@
-use crate::utils::structs::SongFilterResult;
+use crate::utils::structs::PlayRequest;
 use regex_lite::Regex;
 use std::sync::LazyLock;
 
@@ -22,25 +22,31 @@ static SPOTIFY_ALBUM_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?:spotify:album:|spotify\.com/album/)([A-Za-z0-9]{22})").unwrap()
 });
 
-pub fn parse_source(input: &str) -> SongFilterResult {
-    let yt_id = yt_id_extract(input);
-    let yt_list = yt_list_extract(input);
-    let spot_track = spotify_track_extract(input);
-    let spot_list = spotify_playlist_extract(input);
-    let spot_album = spotify_album_extract(input);
-
-    let search_needed = [&yt_id, &yt_list, &spot_track, &spot_list, &spot_album]
-        .iter()
-        .all(|o| o.is_none());
-
-    SongFilterResult {
-        yt_id,
-        yt_list,
-        spot_track,
-        spot_list,
-        spot_album,
-        search_needed,
+pub fn parse_source(input: &str) -> PlayRequest {
+    if let Some(video) = yt_id_extract(input) {
+        if let Some(playlist) = yt_list_extract(input) {
+            return PlayRequest::YouTubeVideoAndPlaylist { video, playlist };
+        }
+        return PlayRequest::YouTubeVideo(video);
     }
+
+    if let Some(playlist) = yt_list_extract(input) {
+        return PlayRequest::YouTubePlaylist(playlist);
+    }
+
+    if let Some(track) = spotify_track_extract(input) {
+        return PlayRequest::SpotifyTrack(track);
+    }
+
+    if let Some(playlist) = spotify_playlist_extract(input) {
+        return PlayRequest::SpotifyPlaylist(playlist);
+    }
+
+    if let Some(album) = spotify_album_extract(input) {
+        return PlayRequest::SpotifyAlbum(album);
+    }
+
+    PlayRequest::Search(input.to_string())
 }
 
 fn yt_id_extract(input: &str) -> Option<String> {

@@ -1,3 +1,6 @@
+use std::sync::Arc;
+use tokio::sync::RwLock;
+
 use serenity::async_trait;
 use serenity::model::id::{ChannelId, GuildId};
 use serenity::prelude::Context;
@@ -7,27 +10,31 @@ use songbird::input::YoutubeDl;
 use songbird::{Event, EventContext, EventHandler, TrackEvent};
 
 use crate::utils::reset_serprops::reset_serprops;
-use crate::utils::structs::{BotData, ServerProps};
+use crate::utils::structs::{BotData, ServerProps, Song};
 use crate::utils::youtube::yt_search;
 
 pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: ChannelId) {
     let data = ctx.data::<BotData>();
 
     // Check if playing already. If so, do nothing.
-    let song = {
-        let mut serprops = data.all_ser_props.get(&guild_id).unwrap().write().await;
-
+    {
+        let serprops = data.all_ser_props.get(&guild_id).unwrap().read().await;
         if serprops.playing.is_some() {
             return;
         }
+    }
 
-        if !load_next_song(ctx, &mut serprops).await {
-            drop(serprops);
+    let serprops_lock = data.all_ser_props.get(&guild_id).unwrap();
+    let song = match load_next_song(ctx, serprops_lock).await {
+        Some(song) => {
+            let mut serprops = serprops_lock.write().await;
+            serprops.playing = Some(song.clone());
+            song
+        }
+        None => {
             reset_serprops(ctx, guild_id).await;
             return;
         }
-
-        serprops.playing.clone().unwrap()
     };
 
     let source_url = format!(
@@ -102,22 +109,24 @@ impl EventHandler for TrackEndNotifier {
     }
 }
 
-async fn load_next_song(ctx: &Context, serprops: &mut ServerProps) -> bool {
+async fn load_next_song(ctx: &Context, serprops_lock: &Arc<RwLock<ServerProps>>) -> Option<Song> {
     loop {
-        serprops.playing = serprops
-            .request_queue
-            .pop_front()
-            .or_else(|| serprops.playlist_queue.pop_front());
+        let option_song = {
+            let mut serprops = serprops_lock.write().await;
+            serprops
+                .request_queue
+                .pop_front()
+                .or_else(|| serprops.playlist_queue.pop_front())
+        };
 
-        if let Some(playing) = &serprops.playing {
-            if playing.id.is_some() {
-                return true;
-            } else if let Some(new_song_data) = yt_search(ctx, &playing.title).await {
-                serprops.playing = Some(new_song_data);
-                return true;
+        match option_song {
+            Some(song) if song.id.is_some() => return Some(song),
+            Some(song) => {
+                if let Some(searched) = yt_search(ctx, &song.title).await {
+                    return Some(searched);
+                }
             }
-        } else {
-            return false;
+            None => return None,
         }
     }
 }

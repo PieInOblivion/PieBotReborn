@@ -57,8 +57,6 @@ pub async fn yt_list_id_to_vec(ctx: &Context, id: &str) -> Option<VecDeque<Song>
 
         let response = yt_https_request(ctx, &url).await?;
 
-        next_page_token = response["nextPageToken"].as_str().unwrap_or("").to_string();
-
         if let Some(res) = response["items"].as_array() {
             for item in res.iter() {
                 let video_id = item["snippet"]["resourceId"]["videoId"].as_str()?;
@@ -71,7 +69,9 @@ pub async fn yt_list_id_to_vec(ctx: &Context, id: &str) -> Option<VecDeque<Song>
             }
         }
 
-        if next_page_token.is_empty() {
+        if let Some(token) = response["nextPageToken"].as_str() {
+            next_page_token = token.to_string();
+        } else {
             break;
         }
     }

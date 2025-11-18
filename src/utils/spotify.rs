@@ -95,12 +95,11 @@ impl Spotify {
             let json = Self::https_req(self, ctx, &next_url).await?;
 
             for item in json["items"].as_array()?.iter() {
-                let title = item["name"].as_str()?.to_string();
-
+                let title = item["name"].as_str()?;
                 let artists = item["artists"]
                     .as_array()?
                     .iter()
-                    .map(|artist| artist["name"].as_str().unwrap())
+                    .filter_map(|artist| artist["name"].as_str())
                     .collect::<Vec<&str>>()
                     .join(" ");
 
@@ -110,9 +109,9 @@ impl Spotify {
                 });
             }
 
-            next_url = json["next"].as_str().get_or_insert("").to_string();
-
-            if next_url.is_empty() {
+            if let Some(next) = json["next"].as_str() {
+                next_url = next.to_string();
+            } else {
                 break;
             }
         }
@@ -132,12 +131,11 @@ impl Spotify {
             let json = Self::https_req(self, ctx, &next_url).await?;
 
             for item in json["items"].as_array()?.iter() {
-                let title = item["track"]["name"].as_str()?.to_string();
-
+                let title = item["track"]["name"].as_str()?;
                 let artists = item["track"]["artists"]
                     .as_array()?
                     .iter()
-                    .map(|artist| artist["name"].as_str().unwrap())
+                    .filter_map(|artist| artist["name"].as_str())
                     .collect::<Vec<&str>>()
                     .join(" ");
 
@@ -147,9 +145,9 @@ impl Spotify {
                 });
             }
 
-            next_url = json["next"].as_str().get_or_insert("").to_string();
-
-            if next_url.is_empty() {
+            if let Some(next) = json["next"].as_str() {
+                next_url = next.to_string();
+            } else {
                 break;
             }
         }
@@ -162,12 +160,11 @@ impl Spotify {
 
         let json = Self::https_req(self, ctx, &url).await?;
 
-        let title = json["name"].as_str()?.to_string();
-
+        let title = json["name"].as_str()?;
         let artists = json["artists"]
             .as_array()?
             .iter()
-            .map(|artist| artist["name"].as_str().unwrap())
+            .filter_map(|artist| artist["name"].as_str())
             .collect::<Vec<&str>>()
             .join(" ");
 

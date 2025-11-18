@@ -3,7 +3,7 @@ use serenity::all::{
     CreateInteractionResponseMessage,
 };
 
-use crate::utils::structs::{ServerProps, Song};
+use crate::utils::structs::Song;
 
 pub async fn msg_rps(
     ctx: &Context,
@@ -52,21 +52,6 @@ pub async fn msg_no_spotify_result(ctx: &Context, cmd: &CommandInteraction, quer
     send_embed(ctx, cmd, embed).await;
 }
 
-pub async fn msg_request_queue(
-    ctx: &Context,
-    cmd: &CommandInteraction,
-    server_props: &ServerProps,
-    song: Song,
-) {
-    if server_props.playing.is_none() {
-        msg_now_playing(ctx, cmd, song).await;
-    } else {
-        let req_q = server_props.request_queue.len().to_string();
-        let play_q = server_props.playlist_queue.len().to_string();
-        msg_user_queue_added(ctx, cmd, song, req_q, play_q).await;
-    }
-}
-
 pub async fn msg_now_playing(ctx: &Context, cmd: &CommandInteraction, song: Song) {
     let embed = CreateEmbed::default()
         .to_owned()
@@ -84,7 +69,7 @@ pub async fn msg_now_playing(ctx: &Context, cmd: &CommandInteraction, song: Song
     send_embed(ctx, cmd, embed).await;
 }
 
-async fn msg_user_queue_added(
+pub async fn msg_user_queue_added(
     ctx: &Context,
     cmd: &CommandInteraction,
     song: Song,
@@ -114,13 +99,14 @@ async fn msg_user_queue_added(
 pub async fn msg_list_queue_added(
     ctx: &Context,
     cmd: &CommandInteraction,
-    server_props: &ServerProps,
     req_len_added: usize,
+    req_queue_len: usize,
     play_len_added: usize,
+    playlist_queue_len: usize,
 ) {
-    let user_queue_title = format!("User Queue: {}", server_props.request_queue.len());
+    let user_queue_title = format!("User Queue: {}", req_queue_len);
     let user_queue_value = format!("{} Added", req_len_added);
-    let playlist_queue_title = format!("Playlist Queue: {}", server_props.playlist_queue.len());
+    let playlist_queue_title = format!("Playlist Queue: {}", playlist_queue_len);
     let playlist_queue_value = format!("{} Added", play_len_added);
 
     let embed = CreateEmbed::default()

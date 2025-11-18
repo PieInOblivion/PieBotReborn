@@ -50,11 +50,12 @@ pub struct Song {
     pub title: Arc<str>,
 }
 
-pub struct SongFilterResult {
-    pub yt_id: Option<String>,
-    pub yt_list: Option<String>,
-    pub spot_track: Option<String>,
-    pub spot_list: Option<String>,
-    pub spot_album: Option<String>,
-    pub search_needed: bool,
+pub enum PlayRequest {
+    Search(String),
+    YouTubeVideo(String),
+    YouTubePlaylist(String),
+    YouTubeVideoAndPlaylist { video: String, playlist: String },
+    SpotifyTrack(String),
+    SpotifyPlaylist(String),
+    SpotifyAlbum(String),
 }
