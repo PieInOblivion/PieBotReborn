@@ -1,10 +1,11 @@
-use serde_json::Value;
 use std::collections::VecDeque;
+use std::sync::Arc;
 
-use crate::HttpKey;
-use crate::utils::structs::Song;
+use serenity::prelude::Context;
 
-pub async fn yt_search(ctx: &serenity::all::Context, q: &str) -> Option<Song> {
+use crate::utils::structs::{BotData, Song};
+
+pub async fn yt_search(ctx: &Context, q: &str) -> Option<Song> {
     let key = include_str!("../../secret/youtube");
 
     let encoded_q = q.replace(' ', "%20");
@@ -19,12 +20,12 @@ pub async fn yt_search(ctx: &serenity::all::Context, q: &str) -> Option<Song> {
     let video_title = response["items"][0]["snippet"]["title"].as_str()?;
 
     Some(Song {
-        id: Some(video_id.to_string()),
-        title: video_title.to_string(),
+        id: Some(Arc::from(video_id)),
+        title: Arc::from(video_title),
     })
 }
 
-pub async fn yt_id_to_name(ctx: &serenity::all::Context, id: &String) -> Option<Song> {
+pub async fn yt_id_to_name(ctx: &Context, id: &str) -> Option<Song> {
     let key = include_str!("../../secret/youtube");
 
     let url = format!(
@@ -36,18 +37,15 @@ pub async fn yt_id_to_name(ctx: &serenity::all::Context, id: &String) -> Option<
     let video_title = response["items"][0]["snippet"]["title"].as_str()?;
 
     Some(Song {
-        id: Some(id.clone()),
-        title: video_title.to_string(),
+        id: Some(Arc::from(id)),
+        title: Arc::from(video_title),
     })
 }
 
-pub async fn yt_list_id_to_vec(
-    ctx: &serenity::all::Context,
-    id: &String,
-) -> Option<VecDeque<Song>> {
+pub async fn yt_list_id_to_vec(ctx: &Context, id: &str) -> Option<VecDeque<Song>> {
     let key = include_str!("../../secret/youtube");
 
-    let mut next_page_token: String = "".to_string();
+    let mut next_page_token: String = String::new();
 
     let mut list: VecDeque<Song> = VecDeque::new();
 
@@ -59,21 +57,16 @@ pub async fn yt_list_id_to_vec(
 
         let response = yt_https_request(ctx, &url).await?;
 
-        next_page_token = response["nextPageToken"]
-            .as_str()
-            .get_or_insert("")
-            .to_string();
+        next_page_token = response["nextPageToken"].as_str().unwrap_or("").to_string();
 
         if let Some(res) = response["items"].as_array() {
             for item in res.iter() {
+                let video_id = item["snippet"]["resourceId"]["videoId"].as_str()?;
+                let video_title = item["snippet"]["title"].as_str()?;
+
                 list.push_back(Song {
-                    id: Some(
-                        item["snippet"]["resourceId"]["videoId"]
-                            .as_str()
-                            .unwrap()
-                            .to_string(),
-                    ),
-                    title: item["snippet"]["title"].as_str()?.to_string(),
+                    id: Some(Arc::from(video_id)),
+                    title: Arc::from(video_title),
                 });
             }
         }
@@ -86,13 +79,10 @@ pub async fn yt_list_id_to_vec(
     Some(list)
 }
 
-async fn yt_https_request(ctx: &serenity::all::Context, url: &str) -> Option<Value> {
-    let http_client = {
-        let data = ctx.data.read().await;
-        data.get::<HttpKey>().cloned().unwrap()
-    };
+async fn yt_https_request(ctx: &Context, url: &str) -> Option<serde_json::Value> {
+    let data = ctx.data::<BotData>();
 
-    let response = http_client.get(url).send().await.ok()?;
+    let response = data.http.get(url).send().await.ok()?;
 
     response.json().await.ok()
 }

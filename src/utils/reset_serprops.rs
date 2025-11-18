@@ -1,40 +1,33 @@
-use std::collections::VecDeque;
-
-use serenity::client::Context;
 use serenity::model::id::GuildId;
+use serenity::prelude::Context;
+use songbird::id::GuildId as SongbirdGuildId;
 
-use crate::utils::structs::AllSerProps;
+use crate::utils::structs::BotData;
 
 pub async fn reset_serprops(ctx: &Context, guild_id: GuildId) -> bool {
-    let mut allserprops = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<AllSerProps>().unwrap().clone()
-    };
+    let data = ctx.data::<BotData>();
+    let mut serprops = data.all_ser_props.get(&guild_id).unwrap().write().await;
 
-    let mut serprops = allserprops.get_mut(&guild_id).unwrap().write().await;
+    // Check if there's actually anything to reset
+    let has_content = !serprops.request_queue.is_empty()
+        || !serprops.playlist_queue.is_empty()
+        || serprops.playing.is_some()
+        || serprops.playing_handle.is_some();
 
-    let old_serprops = serprops.clone();
-    let mut left_vc = false;
-
-    serprops.request_queue = VecDeque::new();
-    serprops.playlist_queue = VecDeque::new();
+    // Clear queues and stop playback
+    serprops.request_queue.clear();
+    serprops.playlist_queue.clear();
     serprops.playing = None;
 
-    if serprops.playing_handle.is_some() {
-        let _ = serprops.playing_handle.as_ref().unwrap().stop();
-        serprops.playing_handle = None;
+    if let Some(handle) = serprops.playing_handle.take() {
+        let _ = handle.stop();
     }
 
-    let manager = songbird::get(ctx).await.unwrap();
-    if manager.remove(guild_id).await.is_ok() {
-        left_vc = true;
-    }
+    // Try to leave voice channel
+    let manager = &data.songbird;
+    let songbird_guild_id = SongbirdGuildId::from(guild_id);
+    let left_vc = manager.remove(songbird_guild_id).await.is_ok();
 
     // Returns true if no changes were made
-    old_serprops.playing == serprops.playing
-        && old_serprops.playlist_queue == serprops.playlist_queue
-        && old_serprops.request_queue == serprops.request_queue
-        && old_serprops.playing_handle.is_none()
-        && serprops.playing_handle.is_none()
-        && !left_vc
+    !has_content && !left_vc
 }

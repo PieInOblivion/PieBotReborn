@@ -1,7 +1,7 @@
 use serenity::all::{CommandInteraction, Context, CreateCommand};
 
 use crate::utils::respond::{msg_not_playing, msg_queue_stats, msg_user_not_in_voice_channel};
-use crate::utils::structs::AllSerProps;
+use crate::utils::structs::BotData;
 use crate::utils::user_current_voice_and_guild::voice_and_guild;
 
 pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
@@ -13,27 +13,23 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     }
 
     let (req_q, play_q) = {
-        let allserprops = {
-            let data_read = ctx.data.read().await;
-            data_read.get::<AllSerProps>().unwrap().clone()
-        };
-        let serprops = allserprops.get(&guild_id).unwrap().read().await;
+        let data = ctx.data::<BotData>();
+        let server_props = data.all_ser_props.get(&guild_id).unwrap().read().await;
 
-        if serprops.playing.is_none() {
+        if server_props.playing.is_none() {
             msg_not_playing(ctx, cmd).await;
             return;
         }
 
         (
-            serprops.request_queue.len().to_string(),
-            serprops.playlist_queue.len().to_string(),
+            server_props.request_queue.len().to_string(),
+            server_props.playlist_queue.len().to_string(),
         )
     };
 
     msg_queue_stats(ctx, cmd, req_q, play_q).await;
 }
 
-pub fn register() -> CreateCommand {
-    CreateCommand::new("queue")
-        .description("Shows the queue counters")
+pub fn register() -> CreateCommand<'static> {
+    CreateCommand::new("queue").description("Shows the queue counters")
 }

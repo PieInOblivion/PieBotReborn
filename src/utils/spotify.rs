@@ -1,6 +1,5 @@
 use base64_light::base64_encode;
 use serde_json::Value;
-use serenity::prelude::TypeMapKey;
 
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -8,12 +7,9 @@ use std::time::SystemTime;
 
 use tokio::sync::RwLock;
 
-use crate::HttpKey;
-use crate::utils::structs::Song;
+use serenity::prelude::Context;
 
-impl TypeMapKey for Spotify {
-    type Value = Spotify;
-}
+use crate::utils::structs::{BotData, Song};
 
 struct SpotifyToken {
     token: String,
@@ -23,16 +19,16 @@ struct SpotifyToken {
 
 #[derive(Clone)]
 pub struct Spotify {
-    id: String,
-    secret: String,
+    id: Arc<str>,
+    secret: Arc<str>,
     token: Arc<RwLock<SpotifyToken>>,
 }
 
 impl Spotify {
     pub async fn new(id: String, secret: String) -> Spotify {
         Spotify {
-            id,
-            secret,
+            id: Arc::from(id),
+            secret: Arc::from(secret),
             token: Arc::new(RwLock::new(SpotifyToken {
                 token: String::new(),
                 token_birth: SystemTime::now(),
@@ -41,7 +37,7 @@ impl Spotify {
         }
     }
 
-    async fn get_token(&mut self, ctx: &serenity::all::Context) -> String {
+    async fn get_token(&self, ctx: &Context) -> String {
         let mut token_info = self.token.write().await;
         let sec_since_refresh = SystemTime::now()
             .duration_since(token_info.token_birth)
@@ -50,10 +46,9 @@ impl Spotify {
 
         // 10 second buffer or empty token
         if sec_since_refresh + 10 > token_info.token_expires_in_sec || token_info.token.is_empty() {
-            let (new_token, expires) =
-                Self::get_token_new(ctx, self.id.clone(), self.secret.clone())
-                    .await
-                    .unwrap();
+            let (new_token, expires) = Self::get_token_new(ctx, &self.id, &self.secret)
+                .await
+                .unwrap();
             token_info.token = new_token;
             token_info.token_birth = SystemTime::now();
             token_info.token_expires_in_sec = expires;
@@ -63,21 +58,15 @@ impl Spotify {
         }
     }
 
-    async fn get_token_new(
-        ctx: &serenity::all::Context,
-        id: String,
-        secret: String,
-    ) -> Option<(String, u64)> {
+    async fn get_token_new(ctx: &Context, id: &str, secret: &str) -> Option<(String, u64)> {
         let auth_url = "https://accounts.spotify.com/api/token";
         let auth = base64_encode(format!("{}:{}", id, secret).as_str());
         let auth_code = format!("Basic {}", auth);
 
-        let http_client = {
-            let data_read = ctx.data.read().await;
-            data_read.get::<HttpKey>().cloned().unwrap()
-        };
+        let data = ctx.data::<BotData>();
 
-        let response = http_client
+        let response = data
+            .http
             .post(auth_url)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .header("Authorization", &auth_code)
@@ -94,11 +83,7 @@ impl Spotify {
         ))
     }
 
-    pub async fn get_album_tracks(
-        &mut self,
-        ctx: &serenity::all::Context,
-        id: &String,
-    ) -> Option<VecDeque<Song>> {
+    pub async fn get_album_tracks(&self, ctx: &Context, id: &str) -> Option<VecDeque<Song>> {
         let mut next_url = format!(
             "https://api.spotify.com/v1/albums/{}/tracks?limit=50&offset=0",
             id
@@ -121,7 +106,7 @@ impl Spotify {
 
                 album.push_back(Song {
                     id: None,
-                    title: format!("{} {}", artists, title),
+                    title: Arc::from(format!("{} {}", artists, title)),
                 });
             }
 
@@ -135,11 +120,7 @@ impl Spotify {
         Some(album)
     }
 
-    pub async fn get_playlist_tracks(
-        &mut self,
-        ctx: &serenity::all::Context,
-        id: &String,
-    ) -> Option<VecDeque<Song>> {
+    pub async fn get_playlist_tracks(&self, ctx: &Context, id: &str) -> Option<VecDeque<Song>> {
         let mut next_url = format!(
             "https://api.spotify.com/v1/playlists/{}/tracks?limit=100&offset=0",
             id
@@ -162,7 +143,7 @@ impl Spotify {
 
                 playlist.push_back(Song {
                     id: None,
-                    title: format!("{} {}", artists, title),
+                    title: Arc::from(format!("{} {}", artists, title)),
                 });
             }
 
@@ -176,7 +157,7 @@ impl Spotify {
         Some(playlist)
     }
 
-    pub async fn get_track(&mut self, ctx: &serenity::all::Context, id: &String) -> Option<Song> {
+    pub async fn get_track(&self, ctx: &Context, id: &str) -> Option<Song> {
         let url = format!("https://api.spotify.com/v1/tracks/{}", id);
 
         let json = Self::https_req(self, ctx, &url).await?;
@@ -192,23 +173,17 @@ impl Spotify {
 
         Some(Song {
             id: None,
-            title: format!("{} {}", artists, title),
+            title: Arc::from(format!("{} {}", artists, title)),
         })
     }
 
-    async fn https_req(
-        &mut self,
-        ctx: &serenity::all::Context,
-        url: &str,
-    ) -> Option<serde_json::Value> {
+    async fn https_req(&self, ctx: &Context, url: &str) -> Option<serde_json::Value> {
         let token = Self::get_token(self, ctx).await;
 
-        let http_client = {
-            let data_read = ctx.data.read().await;
-            data_read.get::<HttpKey>().cloned().unwrap()
-        };
+        let data = ctx.data::<BotData>();
 
-        let response = http_client
+        let response = data
+            .http
             .get(url)
             .header("Authorization", &format!("Bearer {}", token))
             .send()

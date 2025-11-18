@@ -4,7 +4,7 @@ use crate::utils::respond::{
     msg_not_playing, msg_removed_last_song, msg_removed_last_song_failed,
     msg_user_not_in_voice_channel,
 };
-use crate::utils::structs::AllSerProps;
+use crate::utils::structs::BotData;
 use crate::utils::user_current_voice_and_guild::voice_and_guild;
 
 pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
@@ -15,28 +15,22 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
         return;
     }
 
-    {
-        let mut allserprops = {
-            let data_read = ctx.data.read().await;
-            data_read.get::<AllSerProps>().unwrap().clone()
-        };
-        let mut serprops = allserprops.get_mut(&guild_id).unwrap().write().await;
+    let data = ctx.data::<BotData>();
+    let mut server_props = data.all_ser_props.get(&guild_id).unwrap().write().await;
 
-        if serprops.playing.is_none() {
-            msg_not_playing(ctx, cmd).await;
-            return;
-        }
+    if server_props.playing.is_none() {
+        msg_not_playing(ctx, cmd).await;
+        return;
+    }
 
-        if serprops.request_queue.pop_back().is_none() {
-            msg_removed_last_song_failed(ctx, cmd).await;
-            return;
-        }
+    if server_props.request_queue.pop_back().is_none() {
+        msg_removed_last_song_failed(ctx, cmd).await;
+        return;
     }
 
     msg_removed_last_song(ctx, cmd).await;
 }
 
-pub fn register() -> CreateCommand {
-    CreateCommand::new("remove")
-        .description("Removes the single last requested song")
+pub fn register() -> CreateCommand<'static> {
+    CreateCommand::new("remove").description("Removes the single last requested song")
 }

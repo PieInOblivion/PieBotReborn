@@ -1,6 +1,6 @@
 use serenity::model::id::GuildId;
-use serenity::prelude::TypeMapKey;
 
+use songbird::Songbird;
 use songbird::tracks::TrackHandle;
 
 use std::collections::{HashMap, VecDeque};
@@ -10,23 +10,26 @@ use rand::seq::SliceRandom;
 
 use tokio::sync::RwLock;
 
-pub struct AllSerProps;
+use crate::utils::spotify::Spotify;
+use reqwest::Client as HttpClient;
 
-impl TypeMapKey for AllSerProps {
-    type Value = HashMap<GuildId, Arc<RwLock<SerProps>>>;
+pub struct BotData {
+    pub all_ser_props: HashMap<GuildId, Arc<RwLock<ServerProps>>>,
+    pub spotify: Spotify,
+    pub http: HttpClient,
+    pub songbird: Arc<Songbird>,
 }
 
-#[derive(Clone)]
-pub struct SerProps {
+pub struct ServerProps {
     pub request_queue: VecDeque<Song>,
     pub playlist_queue: VecDeque<Song>,
     pub playing: Option<Song>,
     pub playing_handle: Option<TrackHandle>,
 }
 
-impl SerProps {
-    pub fn new() -> SerProps {
-        SerProps {
+impl ServerProps {
+    pub fn new() -> ServerProps {
+        ServerProps {
             request_queue: VecDeque::new(),
             playlist_queue: VecDeque::new(),
             playing: None,
@@ -43,8 +46,8 @@ impl SerProps {
 
 #[derive(Clone, PartialEq)]
 pub struct Song {
-    pub id: Option<String>,
-    pub title: String,
+    pub id: Option<Arc<str>>,
+    pub title: Arc<str>,
 }
 
 pub struct SongFilterResult {

@@ -35,7 +35,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     }
 }
 
-pub fn register() -> CreateCommand {
+pub fn register() -> CreateCommand<'static> {
     CreateCommand::new("rps")
         .description("Rock, Paper, Scissors!")
         .add_option(

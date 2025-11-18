@@ -1,22 +1,20 @@
 use serenity::async_trait;
-use serenity::client::Context;
 use serenity::model::id::{ChannelId, GuildId};
+use serenity::prelude::Context;
 
-use songbird::{Event, EventContext, EventHandler};
+use songbird::id::{ChannelId as SongbirdChannelId, GuildId as SongbirdGuildId};
+use songbird::input::YoutubeDl;
+use songbird::{Event, EventContext, EventHandler, TrackEvent};
 
-use crate::HttpKey;
 use crate::utils::reset_serprops::reset_serprops;
-use crate::utils::structs::{AllSerProps, SerProps};
+use crate::utils::structs::{BotData, ServerProps};
 use crate::utils::youtube::yt_search;
 
 pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: ChannelId) {
     // Check if playing already. If so, do nothing.
     let song = {
-        let mut allserprops = {
-            let data_read = ctx.data.read().await;
-            data_read.get::<AllSerProps>().unwrap().clone()
-        };
-        let mut serprops = allserprops.get_mut(&guild_id).unwrap().write().await;
+        let data = ctx.data::<BotData>();
+        let mut serprops = data.all_ser_props.get(&guild_id).unwrap().write().await;
 
         if serprops.playing.is_some() {
             return;
@@ -36,24 +34,28 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
         song.id.as_ref().unwrap()
     );
 
-    let http_client = {
-        let data = ctx.data.read().await;
-        data.get::<HttpKey>().cloned().unwrap()
-    };
+    let data = ctx.data::<BotData>();
+    let source = YoutubeDl::new(data.http.clone(), source_url);
 
-    let source = songbird::input::YoutubeDl::new(http_client, source_url);
+    // Get songbird manager from BotData (already Arc-wrapped)
+    let manager = &data.songbird;
 
-    let manager = songbird::get(ctx).await.unwrap();
+    // Convert serenity IDs to songbird IDs (direct conversion supported in serenity-next)
+    let songbird_guild_id = SongbirdGuildId::from(guild_id);
+    let songbird_channel_id = SongbirdChannelId::from(voice_channel_id);
 
     let call = {
-        if let Some(call) = manager.get(guild_id) {
+        if let Some(call) = manager.get(songbird_guild_id) {
             call
         } else {
-            let call = manager.join(guild_id, voice_channel_id).await.unwrap();
+            let call = manager
+                .join(songbird_guild_id, songbird_channel_id)
+                .await
+                .unwrap();
             let mut call_lock = call.lock().await;
 
             call_lock.add_global_event(
-                songbird::Event::Track(songbird::TrackEvent::End),
+                Event::Track(TrackEvent::End),
                 TrackEndNotifier {
                     guild_id,
                     voice_channel_id,
@@ -69,16 +71,8 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
 
     let mut call_lock = call.lock().await;
 
-    {
-        let mut allserprops = {
-            let data_read = ctx.data.read().await;
-            data_read.get::<AllSerProps>().unwrap().clone()
-        };
-        let mut serprops = allserprops.get_mut(&guild_id).unwrap().write().await;
-        serprops.playing_handle = Some(call_lock.play_input(source.clone().into()));
-    }
-
-    drop(call_lock);
+    let mut serprops = data.all_ser_props.get(&guild_id).unwrap().write().await;
+    serprops.playing_handle = Some(call_lock.play_input(source.clone().into()));
 }
 
 struct TrackEndNotifier {
@@ -91,12 +85,13 @@ struct TrackEndNotifier {
 impl EventHandler for TrackEndNotifier {
     async fn act(&self, _: &EventContext<'_>) -> Option<Event> {
         {
-            let mut allserprops = {
-                let data_read = self.ctx.data.read().await;
-                data_read.get::<AllSerProps>().unwrap().clone()
-            };
-
-            let mut serprops = allserprops.get_mut(&self.guild_id).unwrap().write().await;
+            let data = self.ctx.data::<BotData>();
+            let mut serprops = data
+                .all_ser_props
+                .get(&self.guild_id)
+                .unwrap()
+                .write()
+                .await;
 
             serprops.playing = None;
             serprops.playing_handle = None;
@@ -108,7 +103,7 @@ impl EventHandler for TrackEndNotifier {
     }
 }
 
-async fn load_next_song(ctx: &Context, serprops: &mut SerProps) -> bool {
+async fn load_next_song(ctx: &Context, serprops: &mut ServerProps) -> bool {
     loop {
         serprops.playing = serprops
             .request_queue

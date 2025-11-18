@@ -7,9 +7,8 @@ static YT_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^.*((m\.)?youtu\.be/|e/|vi?/|u/\w/|embed/|\?vi?=|\&vi?=)([^#\&\?]{11}).*").unwrap()
 });
 
-static YT_LIST_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"list=([A-Za-z0-9_-]{34,41})").unwrap()
-});
+static YT_LIST_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"list=([A-Za-z0-9_-]{34,41})").unwrap());
 
 static SPOTIFY_TRACK_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?:spotify:track:|spotify\.com/track/)([A-Za-z0-9]{22})").unwrap()
@@ -22,7 +21,6 @@ static SPOTIFY_PLAYLIST_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 static SPOTIFY_ALBUM_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?:spotify:album:|spotify\.com/album/)([A-Za-z0-9]{22})").unwrap()
 });
-
 
 pub fn parse_source(input: &str) -> SongFilterResult {
     let yt_id = yt_id_extract(input);
@@ -54,13 +52,31 @@ fn yt_list_extract(input: &str) -> Option<String> {
 }
 
 fn spotify_track_extract(input: &str) -> Option<String> {
-    Some(SPOTIFY_TRACK_REGEX.captures(input)?.get(1)?.as_str().to_string())
+    Some(
+        SPOTIFY_TRACK_REGEX
+            .captures(input)?
+            .get(1)?
+            .as_str()
+            .to_string(),
+    )
 }
 
 fn spotify_playlist_extract(input: &str) -> Option<String> {
-    Some(SPOTIFY_PLAYLIST_REGEX.captures(input)?.get(1)?.as_str().to_string())
+    Some(
+        SPOTIFY_PLAYLIST_REGEX
+            .captures(input)?
+            .get(1)?
+            .as_str()
+            .to_string(),
+    )
 }
 
 fn spotify_album_extract(input: &str) -> Option<String> {
-    Some(SPOTIFY_ALBUM_REGEX.captures(input)?.get(1)?.as_str().to_string())
+    Some(
+        SPOTIFY_ALBUM_REGEX
+            .captures(input)?
+            .get(1)?
+            .as_str()
+            .to_string(),
+    )
 }

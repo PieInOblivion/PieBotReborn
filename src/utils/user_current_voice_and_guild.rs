@@ -1,4 +1,4 @@
-use serenity::all::{Guild, GuildId, ChannelId, Context, CommandInteraction};
+use serenity::all::{ChannelId, CommandInteraction, Context, Guild, GuildId};
 
 pub fn voice_and_guild(
     ctx: &Context,

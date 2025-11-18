@@ -16,7 +16,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     }
 }
 
-pub fn register() -> CreateCommand {
+pub fn register() -> CreateCommand<'static> {
     CreateCommand::new("stop")
         .description("Stops current song, deletes queues, leaves voice channel")
 }

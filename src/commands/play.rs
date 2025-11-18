@@ -5,8 +5,7 @@ use crate::utils::respond::{
     msg_list_queue_added, msg_no_spotify_result, msg_no_yt_search_result, msg_request_queue,
     msg_user_not_in_voice_channel,
 };
-use crate::utils::spotify::Spotify;
-use crate::utils::structs::AllSerProps;
+use crate::utils::structs::BotData;
 use crate::utils::user_current_voice_and_guild::voice_and_guild;
 use crate::utils::youtube::{yt_id_to_name, yt_list_id_to_vec, yt_search};
 
@@ -25,16 +24,13 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     let user_query: String = arg_to_str(cmd);
     let url_identify = parse_source(&user_query);
 
-    let mut allserprops = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<AllSerProps>().unwrap().clone()
-    };
-    let mut serprops = allserprops.get_mut(&guild_id).unwrap().write().await;
+    let data = ctx.data::<BotData>();
+    let mut server_props = data.all_ser_props.get(&guild_id).unwrap().write().await;
 
     if url_identify.search_needed {
         if let Some(song) = yt_search(ctx, &user_query).await {
-            serprops.request_queue.push_back(song.clone());
-            msg_request_queue(ctx, cmd, &serprops, song).await;
+            msg_request_queue(ctx, cmd, &server_props, song.clone()).await;
+            server_props.request_queue.push_back(song);
         } else {
             msg_no_yt_search_result(ctx, cmd, &user_query).await;
         }
@@ -42,27 +38,28 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
         if url_identify.yt_id.is_some() && url_identify.yt_list.is_some() {
             // && two 'if let Some()' statements is unstable in current rust
             // https://github.com/rust-lang/rust/issues/53667
-            let song = yt_id_to_name(ctx, url_identify.yt_id.as_ref().unwrap()).await;
-            let mut list = yt_list_id_to_vec(ctx, url_identify.yt_list.as_ref().unwrap()).await;
-            if song.is_some() && list.is_some() {
+            let song = yt_id_to_name(ctx, url_identify.yt_id.as_ref().unwrap().as_str()).await;
+            let list =
+                yt_list_id_to_vec(ctx, url_identify.yt_list.as_ref().unwrap().as_str()).await;
+            if let (Some(song), Some(mut list)) = (song, list) {
                 // Remove the duplicate song
-                list.as_mut()
-                    .unwrap()
-                    .retain(|s| s.id != song.as_ref().unwrap().id);
-                serprops.request_queue.push_back(song.unwrap());
-                let len = list.as_ref().unwrap().len();
-                serprops.playlist_queue.append(&mut list.unwrap());
-                serprops.playlist_queue_shuffle();
-                msg_list_queue_added(ctx, cmd, &serprops, 1, len).await;
+                list.retain(|s| s.id != song.id);
+                server_props.request_queue.push_back(song);
+                let len = list.len();
+                server_props.playlist_queue.append(&mut list);
+                server_props.playlist_queue_shuffle();
+                msg_list_queue_added(ctx, cmd, &server_props, 1, len).await;
             } else {
                 msg_no_yt_search_result(ctx, cmd, &user_query).await;
             }
         }
 
         if url_identify.yt_id.is_some() && url_identify.yt_list.is_none() {
-            if let Some(song) = yt_id_to_name(ctx, url_identify.yt_id.as_ref().unwrap()).await {
-                serprops.request_queue.push_back(song.clone());
-                msg_request_queue(ctx, cmd, &serprops, song).await;
+            if let Some(song) =
+                yt_id_to_name(ctx, url_identify.yt_id.as_ref().unwrap().as_str()).await
+            {
+                msg_request_queue(ctx, cmd, &server_props, song.clone()).await;
+                server_props.request_queue.push_back(song);
             } else {
                 msg_no_yt_search_result(ctx, cmd, &user_query).await;
             }
@@ -70,12 +67,12 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
 
         if url_identify.yt_list.is_some() && url_identify.yt_id.is_none() {
             if let Some(mut list) =
-                yt_list_id_to_vec(ctx, url_identify.yt_list.as_ref().unwrap()).await
+                yt_list_id_to_vec(ctx, url_identify.yt_list.as_ref().unwrap().as_str()).await
             {
                 let len = list.len();
-                serprops.playlist_queue.append(&mut list);
-                serprops.playlist_queue_shuffle();
-                msg_list_queue_added(ctx, cmd, &serprops, 0, len).await;
+                server_props.playlist_queue.append(&mut list);
+                server_props.playlist_queue_shuffle();
+                msg_list_queue_added(ctx, cmd, &server_props, 0, len).await;
             } else {
                 msg_no_yt_search_result(ctx, cmd, &user_query).await;
             }
@@ -85,16 +82,14 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
             || url_identify.spot_list.is_some()
             || url_identify.spot_album.is_some()
         {
-            let mut spotify = {
-                let data_read = ctx.data.read().await;
-                data_read.get::<Spotify>().unwrap().clone()
-            };
+            let data = ctx.data::<BotData>();
+            let spotify = &data.spotify;
 
             if let Some(id) = url_identify.spot_track {
-                if let Some(song) = spotify.get_track(ctx, &id).await {
+                if let Some(song) = spotify.get_track(ctx, id.as_str()).await {
                     if let Some(song_searched) = yt_search(ctx, &song.title).await {
-                        serprops.request_queue.push_back(song_searched.clone());
-                        msg_request_queue(ctx, cmd, &serprops, song_searched).await;
+                        msg_request_queue(ctx, cmd, &server_props, song_searched.clone()).await;
+                        server_props.request_queue.push_back(song_searched);
                     } else {
                         msg_no_spotify_result(ctx, cmd, &id).await;
                     }
@@ -104,22 +99,22 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
             }
 
             if let Some(id) = url_identify.spot_list {
-                if let Some(mut playlist) = spotify.get_playlist_tracks(ctx, &id).await {
+                if let Some(mut playlist) = spotify.get_playlist_tracks(ctx, id.as_str()).await {
                     let len = playlist.len();
-                    serprops.playlist_queue.append(&mut playlist);
-                    serprops.playlist_queue_shuffle();
-                    msg_list_queue_added(ctx, cmd, &serprops, 0, len).await;
+                    server_props.playlist_queue.append(&mut playlist);
+                    server_props.playlist_queue_shuffle();
+                    msg_list_queue_added(ctx, cmd, &server_props, 0, len).await;
                 } else {
                     msg_no_spotify_result(ctx, cmd, &id).await;
                 }
             }
 
             if let Some(id) = url_identify.spot_album {
-                if let Some(mut album) = spotify.get_album_tracks(ctx, &id).await {
+                if let Some(mut album) = spotify.get_album_tracks(ctx, id.as_str()).await {
                     let len = album.len();
-                    serprops.playlist_queue.append(&mut album);
-                    serprops.playlist_queue_shuffle();
-                    msg_list_queue_added(ctx, cmd, &serprops, 0, len).await;
+                    server_props.playlist_queue.append(&mut album);
+                    server_props.playlist_queue_shuffle();
+                    msg_list_queue_added(ctx, cmd, &server_props, 0, len).await;
                 } else {
                     msg_no_spotify_result(ctx, cmd, &id).await;
                 }
@@ -127,12 +122,12 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
         }
     }
 
-    drop(serprops);
+    drop(server_props);
 
     audio_event(ctx, guild_id, voice_channel_id.unwrap()).await;
 }
 
-pub fn register() -> CreateCommand {
+pub fn register() -> CreateCommand<'static> {
     CreateCommand::new("play")
         .description("Plays YouTube videos, playlists and Spotify tracks, albums and playlists")
         .add_option(
