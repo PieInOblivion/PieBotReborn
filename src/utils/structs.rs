@@ -18,6 +18,7 @@ pub struct BotData {
     pub spotify: Spotify,
     pub http: HttpClient,
     pub songbird: Arc<Songbird>,
+    pub youtube_key: String,
 }
 
 pub struct ServerProps {

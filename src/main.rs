@@ -5,6 +5,8 @@ use crate::utils::spotify::Spotify;
 use crate::utils::structs::{BotData, ServerProps};
 
 use std::collections::HashMap;
+use std::env;
+use std::fs;
 use std::sync::Arc;
 
 use serenity::prelude::{Context, EventHandler};
@@ -106,17 +108,19 @@ impl EventHandler for Handler {
 
 #[tokio::main]
 async fn main() {
-    let spotify_id = include_str!("../secret/spotifyId");
-    let spotify_secret = include_str!("../secret/spotifySecret");
-    let discord_token = include_str!("../secret/discord");
-    let guilds_file = include_str!("../secret/guilds");
+    let spotify_id = env::var("SPOTIFY_ID").expect("SPOTIFY_ID env not set");
+    let spotify_secret = env::var("SPOTIFY_SECRET").expect("SPOTIFY_SECRET env not set");
+    let discord_token = env::var("DISCORD_TOKEN").expect("DISCORD_TOKEN env not set");
+    let youtube_key = env::var("YOUTUBE_KEY").expect("YOUTUBE_KEY env not set");
+
+    let guilds_file = fs::read_to_string("secret/guilds").expect("Failed to read secret/guilds");
 
     let guild_ids: Vec<GuildId> = guilds_file
         .lines()
         .map(|line| GuildId::new(line.parse().unwrap()))
         .collect();
 
-    let spotify = Spotify::new(spotify_id.to_string(), spotify_secret.to_string()).await;
+    let spotify = Spotify::new(spotify_id, spotify_secret).await;
     let mut allserprops: HashMap<GuildId, RwLock<ServerProps>> = HashMap::new();
 
     for gid in &guild_ids {
@@ -130,6 +134,7 @@ async fn main() {
         spotify,
         http: HttpClient::new(),
         songbird: songbird.clone(),
+        youtube_key,
     });
 
     let mut client = Client::builder(

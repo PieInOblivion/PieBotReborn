@@ -6,7 +6,8 @@ use serenity::prelude::Context;
 use crate::utils::structs::{BotData, Song};
 
 pub async fn yt_search(ctx: &Context, q: &str) -> Option<Song> {
-    let key = include_str!("../../secret/youtube");
+    let data = ctx.data::<BotData>();
+    let key = &data.youtube_key;
 
     let encoded_q = q.replace(' ', "%20");
 
@@ -26,7 +27,8 @@ pub async fn yt_search(ctx: &Context, q: &str) -> Option<Song> {
 }
 
 pub async fn yt_id_to_name(ctx: &Context, id: &str) -> Option<Song> {
-    let key = include_str!("../../secret/youtube");
+    let data = ctx.data::<BotData>();
+    let key = &data.youtube_key;
 
     let url = format!(
         "https://www.googleapis.com/youtube/v3/videos?part=snippet&id={}&key={}",
@@ -43,7 +45,8 @@ pub async fn yt_id_to_name(ctx: &Context, id: &str) -> Option<Song> {
 }
 
 pub async fn yt_list_id_to_vec(ctx: &Context, id: &str) -> Option<VecDeque<Song>> {
-    let key = include_str!("../../secret/youtube");
+    let data = ctx.data::<BotData>();
+    let key = &data.youtube_key;
 
     let mut next_page_token = String::new();
 
