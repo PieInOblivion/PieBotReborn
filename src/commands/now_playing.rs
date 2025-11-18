@@ -1,11 +1,11 @@
 use serenity::all::{CommandInteraction, Context, CreateCommand};
 
+use crate::utils::guild_and_voice_channel_id;
 use crate::utils::respond::{msg_not_playing, msg_now_playing, msg_user_not_in_voice_channel};
 use crate::utils::structs::BotData;
-use crate::utils::user_current_voice_and_guild::voice_and_guild;
 
 pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
-    let (_, guild_id, voice_channel_id) = voice_and_guild(ctx, cmd);
+    let (guild_id, voice_channel_id) = guild_and_voice_channel_id(ctx, cmd);
 
     if voice_channel_id.is_none() {
         msg_user_not_in_voice_channel(ctx, cmd).await;

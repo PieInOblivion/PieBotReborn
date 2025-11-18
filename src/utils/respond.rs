@@ -34,7 +34,7 @@ pub async fn msg_user_not_in_voice_channel(ctx: &Context, cmd: &CommandInteracti
     send_embed(ctx, cmd, embed).await;
 }
 
-pub async fn msg_no_yt_search_result(ctx: &Context, cmd: &CommandInteraction, query: &String) {
+pub async fn msg_no_yt_search_result(ctx: &Context, cmd: &CommandInteraction, query: &str) {
     let embed = CreateEmbed::default()
         .to_owned()
         .colour(0xff0000)
@@ -43,7 +43,7 @@ pub async fn msg_no_yt_search_result(ctx: &Context, cmd: &CommandInteraction, qu
     send_embed(ctx, cmd, embed).await;
 }
 
-pub async fn msg_no_spotify_result(ctx: &Context, cmd: &CommandInteraction, query: &String) {
+pub async fn msg_no_spotify_result(ctx: &Context, cmd: &CommandInteraction, query: &str) {
     let embed = CreateEmbed::default()
         .to_owned()
         .colour(0xff0000)

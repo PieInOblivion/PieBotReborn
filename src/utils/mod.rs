@@ -5,5 +5,7 @@ pub mod reset_serprops;
 pub mod respond;
 pub mod spotify;
 pub mod structs;
-pub mod user_current_voice_and_guild;
 pub mod youtube;
+
+mod guild_and_voice_channel_id;
+pub use guild_and_voice_channel_id::guild_and_voice_channel_id;

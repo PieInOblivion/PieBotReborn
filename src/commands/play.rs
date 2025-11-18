@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::utils::audio_handler::audio_event;
+use crate::utils::guild_and_voice_channel_id;
 use crate::utils::identify_source::parse_source;
 use crate::utils::interaction::arg_to_str;
 use crate::utils::respond::{
@@ -8,7 +9,6 @@ use crate::utils::respond::{
     msg_user_not_in_voice_channel, msg_user_queue_added,
 };
 use crate::utils::structs::{BotData, PlayRequest, Song};
-use crate::utils::user_current_voice_and_guild::voice_and_guild;
 use crate::utils::youtube::{yt_id_to_name, yt_list_id_to_vec, yt_search};
 
 use serenity::all::{
@@ -17,15 +17,15 @@ use serenity::all::{
 use serenity::model::id::GuildId;
 
 pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
-    let (_, guild_id, voice_channel_id) = voice_and_guild(ctx, cmd);
+    let (guild_id, voice_channel_id) = guild_and_voice_channel_id(ctx, cmd);
 
     if voice_channel_id.is_none() {
         msg_user_not_in_voice_channel(ctx, cmd).await;
         return;
     }
 
-    let user_query: String = arg_to_str(cmd);
-    let request = parse_source(&user_query);
+    let user_query = arg_to_str(cmd);
+    let request = parse_source(user_query);
     let data = ctx.data::<BotData>();
 
     match request {
@@ -41,7 +41,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
             if let Some(song) = yt_id_to_name(ctx, &id).await {
                 add_single_song(ctx, cmd, guild_id, &data, song).await;
             } else {
-                msg_no_yt_search_result(ctx, cmd, &user_query).await;
+                msg_no_yt_search_result(ctx, cmd, user_query).await;
             }
         }
 
@@ -49,7 +49,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
             if let Some(list) = yt_list_id_to_vec(ctx, &id).await {
                 add_playlist(ctx, cmd, guild_id, &data, list).await;
             } else {
-                msg_no_yt_search_result(ctx, cmd, &user_query).await;
+                msg_no_yt_search_result(ctx, cmd, user_query).await;
             }
         }
 
@@ -74,7 +74,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
 
                 msg_list_queue_added(ctx, cmd, 1, req_len, playlist_len, play_len).await;
             } else {
-                msg_no_yt_search_result(ctx, cmd, &user_query).await;
+                msg_no_yt_search_result(ctx, cmd, user_query).await;
             }
         }
 

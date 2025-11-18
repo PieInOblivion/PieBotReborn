@@ -1,9 +1,9 @@
-use serenity::all::{ChannelId, CommandInteraction, Context, Guild, GuildId};
+use serenity::all::{ChannelId, CommandInteraction, Context, GuildId};
 
-pub fn voice_and_guild(
+pub fn guild_and_voice_channel_id(
     ctx: &Context,
     cmd: &CommandInteraction,
-) -> (Guild, GuildId, Option<ChannelId>) {
+) -> (GuildId, Option<ChannelId>) {
     let guild_id = cmd.guild_id.unwrap();
     let guild = ctx.cache.guild(guild_id).unwrap();
 
@@ -12,5 +12,5 @@ pub fn voice_and_guild(
         .get(&cmd.user.id)
         .and_then(|vs| vs.channel_id);
 
-    (guild.clone(), guild_id, voice_channel_id)
+    (guild_id, voice_channel_id)
 }
