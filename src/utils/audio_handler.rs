@@ -42,10 +42,8 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
     );
     let source = YoutubeDl::new(data.http.clone(), source_url);
 
-    // Get songbird manager from BotData (already Arc-wrapped)
     let manager = &data.songbird;
 
-    // Convert serenity IDs to songbird IDs (direct conversion supported in serenity-next)
     let songbird_guild_id = SongbirdGuildId::from(guild_id);
     let songbird_channel_id = SongbirdChannelId::from(voice_channel_id);
 

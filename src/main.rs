@@ -111,7 +111,6 @@ async fn main() {
     let discord_token = include_str!("../secret/discord");
     let guilds_file = include_str!("../secret/guilds");
 
-    // Parse guilds once and reuse
     let guild_ids: Vec<GuildId> = guilds_file
         .lines()
         .map(|line| GuildId::new(line.parse().unwrap()))

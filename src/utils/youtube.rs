@@ -45,7 +45,7 @@ pub async fn yt_id_to_name(ctx: &Context, id: &str) -> Option<Song> {
 pub async fn yt_list_id_to_vec(ctx: &Context, id: &str) -> Option<VecDeque<Song>> {
     let key = include_str!("../../secret/youtube");
 
-    let mut next_page_token: String = String::new();
+    let mut next_page_token = String::new();
 
     let mut list: VecDeque<Song> = VecDeque::new();
 
