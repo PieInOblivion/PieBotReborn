@@ -11,9 +11,10 @@ use crate::utils::structs::{BotData, ServerProps};
 use crate::utils::youtube::yt_search;
 
 pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: ChannelId) {
+    let data = ctx.data::<BotData>();
+
     // Check if playing already. If so, do nothing.
     let song = {
-        let data = ctx.data::<BotData>();
         let mut serprops = data.all_ser_props.get(&guild_id).unwrap().write().await;
 
         if serprops.playing.is_some() {
@@ -33,8 +34,6 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
         "https://www.youtube.com/watch?v={}",
         song.id.as_ref().unwrap()
     );
-
-    let data = ctx.data::<BotData>();
     let source = YoutubeDl::new(data.http.clone(), source_url);
 
     // Get songbird manager from BotData (already Arc-wrapped)

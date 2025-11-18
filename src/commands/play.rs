@@ -38,9 +38,10 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
         if url_identify.yt_id.is_some() && url_identify.yt_list.is_some() {
             // && two 'if let Some()' statements is unstable in current rust
             // https://github.com/rust-lang/rust/issues/53667
-            let song = yt_id_to_name(ctx, url_identify.yt_id.as_ref().unwrap().as_str()).await;
-            let list =
-                yt_list_id_to_vec(ctx, url_identify.yt_list.as_ref().unwrap().as_str()).await;
+            let yt_id = url_identify.yt_id.as_ref().unwrap().as_str();
+            let yt_list = url_identify.yt_list.as_ref().unwrap().as_str();
+            let song = yt_id_to_name(ctx, yt_id).await;
+            let list = yt_list_id_to_vec(ctx, yt_list).await;
             if let (Some(song), Some(mut list)) = (song, list) {
                 // Remove the duplicate song
                 list.retain(|s| s.id != song.id);
@@ -55,9 +56,8 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
         }
 
         if url_identify.yt_id.is_some() && url_identify.yt_list.is_none() {
-            if let Some(song) =
-                yt_id_to_name(ctx, url_identify.yt_id.as_ref().unwrap().as_str()).await
-            {
+            let yt_id = url_identify.yt_id.as_ref().unwrap().as_str();
+            if let Some(song) = yt_id_to_name(ctx, yt_id).await {
                 msg_request_queue(ctx, cmd, &server_props, song.clone()).await;
                 server_props.request_queue.push_back(song);
             } else {
@@ -66,9 +66,8 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
         }
 
         if url_identify.yt_list.is_some() && url_identify.yt_id.is_none() {
-            if let Some(mut list) =
-                yt_list_id_to_vec(ctx, url_identify.yt_list.as_ref().unwrap().as_str()).await
-            {
+            let yt_list = url_identify.yt_list.as_ref().unwrap().as_str();
+            if let Some(mut list) = yt_list_id_to_vec(ctx, yt_list).await {
                 let len = list.len();
                 server_props.playlist_queue.append(&mut list);
                 server_props.playlist_queue_shuffle();
@@ -82,7 +81,6 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
             || url_identify.spot_list.is_some()
             || url_identify.spot_album.is_some()
         {
-            let data = ctx.data::<BotData>();
             let spotify = &data.spotify;
 
             if let Some(id) = url_identify.spot_track {
