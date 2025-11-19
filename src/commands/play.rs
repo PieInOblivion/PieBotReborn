@@ -5,8 +5,9 @@ use crate::utils::guild_and_voice_channel_id;
 use crate::utils::identify_source::parse_source;
 use crate::utils::interaction::arg_to_str;
 use crate::utils::respond::{
-    msg_list_queue_added, msg_no_spotify_result, msg_no_yt_search_result, msg_now_playing,
-    msg_user_not_in_voice_channel, msg_user_queue_added,
+    create_embed_list_queue_added, create_embed_loading, create_embed_no_spotify_result,
+    create_embed_no_yt_search_result, create_embed_now_playing,
+    create_embed_user_not_in_voice_channel, create_embed_user_queue_added, edit_embed, send_embed,
 };
 use crate::utils::structs::{BotData, PlayRequest, Song};
 use crate::utils::youtube::{yt_id_to_name, yt_list_id_to_vec, yt_search};
@@ -17,10 +18,12 @@ use serenity::all::{
 use serenity::model::id::GuildId;
 
 pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
+    send_embed(ctx, cmd, create_embed_loading()).await;
+
     let (guild_id, voice_channel_id) = guild_and_voice_channel_id(ctx, cmd);
 
     if voice_channel_id.is_none() {
-        msg_user_not_in_voice_channel(ctx, cmd).await;
+        edit_embed(ctx, cmd, create_embed_user_not_in_voice_channel()).await;
         return;
     }
 
@@ -33,7 +36,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
             if let Some(song) = yt_search(ctx, &query).await {
                 add_single_song(ctx, cmd, guild_id, &data, song).await;
             } else {
-                msg_no_yt_search_result(ctx, cmd, &query).await;
+                edit_embed(ctx, cmd, create_embed_no_yt_search_result()).await;
             }
         }
 
@@ -41,7 +44,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
             if let Some(song) = yt_id_to_name(ctx, &id).await {
                 add_single_song(ctx, cmd, guild_id, &data, song).await;
             } else {
-                msg_no_yt_search_result(ctx, cmd, user_query).await;
+                edit_embed(ctx, cmd, create_embed_no_yt_search_result()).await;
             }
         }
 
@@ -49,7 +52,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
             if let Some(list) = yt_list_id_to_vec(ctx, &id).await {
                 add_playlist(ctx, cmd, guild_id, &data, list).await;
             } else {
-                msg_no_yt_search_result(ctx, cmd, user_query).await;
+                edit_embed(ctx, cmd, create_embed_no_yt_search_result()).await;
             }
         }
 
@@ -72,9 +75,14 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
                     )
                 };
 
-                msg_list_queue_added(ctx, cmd, 1, req_len, playlist_len, play_len).await;
+                edit_embed(
+                    ctx,
+                    cmd,
+                    create_embed_list_queue_added(1, req_len, playlist_len, play_len),
+                )
+                .await;
             } else {
-                msg_no_yt_search_result(ctx, cmd, user_query).await;
+                edit_embed(ctx, cmd, create_embed_no_yt_search_result()).await;
             }
         }
 
@@ -83,10 +91,10 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
                 if let Some(song_searched) = yt_search(ctx, &song.title).await {
                     add_single_song(ctx, cmd, guild_id, &data, song_searched).await;
                 } else {
-                    msg_no_spotify_result(ctx, cmd, &id).await;
+                    edit_embed(ctx, cmd, create_embed_no_spotify_result()).await;
                 }
             } else {
-                msg_no_spotify_result(ctx, cmd, &id).await;
+                edit_embed(ctx, cmd, create_embed_no_spotify_result()).await;
             }
         }
 
@@ -94,7 +102,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
             if let Some(playlist) = data.spotify.get_playlist_tracks(ctx, &id).await {
                 add_playlist(ctx, cmd, guild_id, &data, playlist).await;
             } else {
-                msg_no_spotify_result(ctx, cmd, &id).await;
+                edit_embed(ctx, cmd, create_embed_no_spotify_result()).await;
             }
         }
 
@@ -102,7 +110,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
             if let Some(album) = data.spotify.get_album_tracks(ctx, &id).await {
                 add_playlist(ctx, cmd, guild_id, &data, album).await;
             } else {
-                msg_no_spotify_result(ctx, cmd, &id).await;
+                edit_embed(ctx, cmd, create_embed_no_spotify_result()).await;
             }
         }
     }
@@ -128,9 +136,14 @@ async fn add_single_song(
     };
 
     if is_playing {
-        msg_user_queue_added(ctx, cmd, song, req_len, play_len).await;
+        edit_embed(
+            ctx,
+            cmd,
+            create_embed_user_queue_added(&song, req_len, play_len),
+        )
+        .await;
     } else {
-        msg_now_playing(ctx, cmd, song).await;
+        edit_embed(ctx, cmd, create_embed_now_playing(&song)).await;
     }
 }
 
@@ -153,7 +166,12 @@ async fn add_playlist(
         )
     };
 
-    msg_list_queue_added(ctx, cmd, 0, req_len, playlist_len, play_len).await;
+    edit_embed(
+        ctx,
+        cmd,
+        create_embed_list_queue_added(0, req_len, playlist_len, play_len),
+    )
+    .await;
 }
 
 pub fn register() -> CreateCommand<'static> {

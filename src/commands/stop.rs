@@ -2,7 +2,7 @@ use serenity::all::{CommandInteraction, Context, CreateCommand};
 
 use crate::utils::guild_and_voice_channel_id;
 use crate::utils::reset_serprops::reset_serprops;
-use crate::utils::respond::{msg_stopped, msg_stopped_failed};
+use crate::utils::respond::{create_embed_stopped, create_embed_stopped_failed, send_embed};
 
 pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     let (guild_id, _) = guild_and_voice_channel_id(ctx, cmd);
@@ -10,9 +10,9 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     let was_not_changed = reset_serprops(ctx, guild_id).await;
 
     if was_not_changed {
-        msg_stopped_failed(ctx, cmd).await;
+        send_embed(ctx, cmd, create_embed_stopped_failed()).await;
     } else {
-        msg_stopped(ctx, cmd).await;
+        send_embed(ctx, cmd, create_embed_stopped()).await;
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::utils::respond::msg_rps;
+use crate::utils::respond::{create_embed_rps, send_embed};
 
 use rand::Rng;
 
@@ -25,13 +25,23 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     match (bot_choice, usr_choice) {
         ("Rock", "Scissors") | ("Scissors", "Paper") | ("Paper", "Rock") => {
             save_rps(bot_score + 1, usr_score);
-            msg_rps(ctx, cmd, bot_score + 1, usr_score, "I won!").await;
+            send_embed(
+                ctx,
+                cmd,
+                create_embed_rps(bot_score + 1, usr_score, "I won!"),
+            )
+            .await;
         }
         ("Rock", "Paper") | ("Scissors", "Rock") | ("Paper", "Scissors") => {
             save_rps(bot_score, usr_score + 1);
-            msg_rps(ctx, cmd, bot_score, usr_score + 1, "You won!").await;
+            send_embed(
+                ctx,
+                cmd,
+                create_embed_rps(bot_score, usr_score + 1, "You won!"),
+            )
+            .await;
         }
-        _ => msg_rps(ctx, cmd, bot_score, usr_score, "We tied!").await,
+        _ => send_embed(ctx, cmd, create_embed_rps(bot_score, usr_score, "We tied!")).await,
     }
 }
 

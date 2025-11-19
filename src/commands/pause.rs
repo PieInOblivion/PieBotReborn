@@ -4,7 +4,8 @@ use songbird::tracks::PlayMode;
 
 use crate::utils::guild_and_voice_channel_id;
 use crate::utils::respond::{
-    msg_is_paused, msg_not_playing, msg_paused, msg_user_not_in_voice_channel,
+    create_embed_is_paused, create_embed_not_playing, create_embed_paused,
+    create_embed_user_not_in_voice_channel, send_embed,
 };
 use crate::utils::structs::BotData;
 
@@ -12,7 +13,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     let (guild_id, voice_channel_id) = guild_and_voice_channel_id(ctx, cmd);
 
     if voice_channel_id.is_none() {
-        msg_user_not_in_voice_channel(ctx, cmd).await;
+        send_embed(ctx, cmd, create_embed_user_not_in_voice_channel()).await;
         return;
     }
 
@@ -20,20 +21,20 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     let server_props = data.all_ser_props.get(&guild_id).unwrap().read().await;
 
     if server_props.playing.is_none() {
-        msg_not_playing(ctx, cmd).await;
+        send_embed(ctx, cmd, create_embed_not_playing()).await;
         return;
     }
 
     let handle = server_props.playing_handle.as_ref().unwrap();
 
     if handle.get_info().await.unwrap().playing == PlayMode::Pause {
-        msg_is_paused(ctx, cmd).await;
+        send_embed(ctx, cmd, create_embed_is_paused()).await;
         return;
     }
 
     handle.pause().unwrap();
 
-    msg_paused(ctx, cmd).await;
+    send_embed(ctx, cmd, create_embed_paused()).await;
 }
 
 pub fn register() -> CreateCommand<'static> {
