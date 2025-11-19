@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use serenity::model::id::GuildId;
 use serenity::prelude::Context;
 use songbird::id::GuildId as SongbirdGuildId;
@@ -15,8 +17,8 @@ pub async fn reset_serprops(ctx: &Context, guild_id: GuildId) -> bool {
         || serprops.playing_handle.is_some();
 
     // Clear queues and stop playback
-    serprops.request_queue.clear();
-    serprops.playlist_queue.clear();
+    serprops.request_queue = VecDeque::new();
+    serprops.playlist_queue = VecDeque::new();
     serprops.playing = None;
 
     if let Some(handle) = serprops.playing_handle.take() {
