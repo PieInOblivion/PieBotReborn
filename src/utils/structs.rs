@@ -45,7 +45,7 @@ impl ServerProps {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct Song {
     pub id: Option<Arc<str>>,
     pub title: Arc<str>,
