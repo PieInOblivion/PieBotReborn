@@ -20,8 +20,8 @@ pub async fn yt_search(ctx: &Context, q: &str) -> Option<Song> {
     let video_id = response["items"][0]["id"]["videoId"].as_str()?;
     let video_title = response["items"][0]["snippet"]["title"].as_str()?;
 
-    Some(Song {
-        id: Some(Arc::from(video_id)),
+    Some(Song::WithId {
+        id: Arc::from(video_id),
         title: Arc::from(video_title),
     })
 }
@@ -38,8 +38,8 @@ pub async fn yt_id_to_name(ctx: &Context, id: &str) -> Option<Song> {
     let response = yt_https_request(ctx, &url).await?;
     let video_title = response["items"][0]["snippet"]["title"].as_str()?;
 
-    Some(Song {
-        id: Some(Arc::from(id)),
+    Some(Song::WithId {
+        id: Arc::from(id),
         title: Arc::from(video_title),
     })
 }
@@ -65,8 +65,8 @@ pub async fn yt_list_id_to_vec(ctx: &Context, id: &str) -> Option<VecDeque<Song>
                 let video_id = item["snippet"]["resourceId"]["videoId"].as_str()?;
                 let video_title = item["snippet"]["title"].as_str()?;
 
-                list.push_back(Song {
-                    id: Some(Arc::from(video_id)),
+                list.push_back(Song::WithId {
+                    id: Arc::from(video_id),
                     title: Arc::from(video_title),
                 });
             }

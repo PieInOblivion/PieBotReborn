@@ -36,10 +36,7 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
         }
     };
 
-    let source_url = format!(
-        "https://www.youtube.com/watch?v={}",
-        song.id.as_ref().unwrap()
-    );
+    let source_url = format!("https://www.youtube.com/watch?v={}", song.id().unwrap());
     let source = YoutubeDl::new(data.http.clone(), source_url);
 
     let manager = &data.songbird;
@@ -117,9 +114,9 @@ async fn load_next_song(ctx: &Context, serprops_lock: &RwLock<ServerProps>) -> O
         };
 
         match option_song {
-            Some(song) if song.id.is_some() => return Some(song),
-            Some(song) => {
-                if let Some(searched) = yt_search(ctx, &song.title).await {
+            Some(Song::WithId { .. }) => return option_song,
+            Some(Song::NoId { title }) => {
+                if let Some(searched) = yt_search(ctx, &title).await {
                     return Some(searched);
                 }
             }

@@ -102,8 +102,7 @@ impl Spotify {
                     .collect::<Vec<&str>>()
                     .join(" ");
 
-                album.push_back(Song {
-                    id: None,
+                album.push_back(Song::NoId {
                     title: Arc::from(format!("{} {}", artists, title)),
                 });
             }
@@ -138,8 +137,7 @@ impl Spotify {
                     .collect::<Vec<&str>>()
                     .join(" ");
 
-                playlist.push_back(Song {
-                    id: None,
+                playlist.push_back(Song::NoId {
                     title: Arc::from(format!("{} {}", artists, title)),
                 });
             }
@@ -167,8 +165,7 @@ impl Spotify {
             .collect::<Vec<&str>>()
             .join(" ");
 
-        Some(Song {
-            id: None,
+        Some(Song::NoId {
             title: Arc::from(format!("{} {}", artists, title)),
         })
     }

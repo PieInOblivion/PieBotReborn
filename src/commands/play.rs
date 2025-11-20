@@ -61,7 +61,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
             let list = yt_list_id_to_vec(ctx, &playlist).await;
 
             if let (Some(song), Some(mut list)) = (song, list) {
-                list.retain(|s| s.id != song.id);
+                list.retain(|s| s.id() != song.id());
                 let playlist_len = list.len();
 
                 let (req_len, play_len) = {
@@ -88,7 +88,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
 
         PlayRequest::SpotifyTrack(id) => {
             if let Some(song) = data.spotify.get_track(ctx, &id).await {
-                if let Some(song_searched) = yt_search(ctx, &song.title).await {
+                if let Some(song_searched) = yt_search(ctx, song.title()).await {
                     add_single_song(ctx, cmd, guild_id, &data, song_searched).await;
                 } else {
                     edit_embed(ctx, cmd, create_embed_no_spotify_result()).await;

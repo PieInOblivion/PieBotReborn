@@ -46,9 +46,24 @@ impl ServerProps {
 }
 
 #[derive(Clone)]
-pub struct Song {
-    pub id: Option<Arc<str>>,
-    pub title: Arc<str>,
+pub enum Song {
+    NoId { title: Arc<str> },
+    WithId { id: Arc<str>, title: Arc<str> },
+}
+
+impl Song {
+    pub fn title(&self) -> &str {
+        match self {
+            Song::NoId { title } | Song::WithId { title, .. } => title,
+        }
+    }
+
+    pub fn id(&self) -> Option<&str> {
+        match self {
+            Song::NoId { .. } => None,
+            Song::WithId { id, .. } => Some(id),
+        }
+    }
 }
 
 pub enum PlayRequest {

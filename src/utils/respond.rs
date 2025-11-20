@@ -41,11 +41,8 @@ pub fn create_embed_now_playing(song: &Song) -> CreateEmbed<'_> {
         .colour(0x00ffff)
         .title("Now Playing:")
         .field(
-            song.title.as_ref(),
-            format!(
-                "**https://www.youtube.com/watch?v={}**",
-                song.id.as_ref().unwrap()
-            ),
+            song.title(),
+            format!("**https://www.youtube.com/watch?v={}**", song.id().unwrap()),
             false,
         )
 }
@@ -61,11 +58,8 @@ pub fn create_embed_user_queue_added<'a>(
         .title("Added to Queue:")
         .fields(vec![
             (
-                song.title.as_ref(),
-                format!(
-                    "**https://www.youtube.com/watch?v={}**",
-                    song.id.as_ref().unwrap()
-                ),
+                song.title(),
+                format!("**https://www.youtube.com/watch?v={}**", song.id().unwrap()),
                 false,
             ),
             ("User Queue Length:", req_q, true),
