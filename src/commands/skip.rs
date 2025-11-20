@@ -8,12 +8,10 @@ use crate::utils::respond::{
 use crate::utils::structs::BotData;
 
 pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
-    let (guild_id, voice_channel_id) = guild_and_voice_channel_id(ctx, cmd);
-
-    if voice_channel_id.is_none() {
+    let (guild_id, Some(_voice_channel_id)) = guild_and_voice_channel_id(ctx, cmd) else {
         send_embed(ctx, cmd, create_embed_user_not_in_voice_channel()).await;
         return;
-    }
+    };
 
     let data = ctx.data::<BotData>();
     let server_props = data.all_ser_props.get(&guild_id).unwrap().read().await;

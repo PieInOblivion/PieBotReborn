@@ -20,12 +20,10 @@ use serenity::model::id::GuildId;
 pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     send_embed(ctx, cmd, create_embed_loading()).await;
 
-    let (guild_id, voice_channel_id) = guild_and_voice_channel_id(ctx, cmd);
-
-    if voice_channel_id.is_none() {
+    let (guild_id, Some(voice_channel_id)) = guild_and_voice_channel_id(ctx, cmd) else {
         edit_embed(ctx, cmd, create_embed_user_not_in_voice_channel()).await;
         return;
-    }
+    };
 
     let user_query = arg_to_str(cmd);
     let request = parse_source(user_query);
@@ -115,7 +113,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
         }
     }
 
-    audio_event(ctx, guild_id, voice_channel_id.unwrap()).await;
+    audio_event(ctx, guild_id, voice_channel_id).await;
 }
 
 async fn add_single_song(
