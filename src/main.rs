@@ -141,8 +141,8 @@ async fn main() {
         discord_token.trim().parse().expect("Invalid token"),
         GatewayIntents::GUILD_VOICE_STATES | GatewayIntents::GUILDS,
     )
-    .event_handler(Handler)
-    .voice_manager::<Songbird>(songbird)
+    .event_handler(Arc::new(Handler))
+    .voice_manager(songbird)
     .data(bot_data)
     .await
     .expect("Error creating client");
