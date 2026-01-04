@@ -50,10 +50,10 @@
     - `SPOTIFY_SECRET` - Spotify Client Secret
     - `YOUTUBE_KEY` - YouTube API key
 
-5. Build
+4. Build
 
     - Run `cargo build --release` to compile. Because the bot reads secrets from environment variables at runtime, the compiled binary will not contain your API keys if you do not bake them into build-time environment variables. Keep your runtime environment secure.
 
-6. Run
+5. Run
 
     - Run `cargo run --release` (ensure required env vars are set and `secret/guilds` exists).
