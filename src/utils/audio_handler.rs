@@ -15,15 +15,13 @@ use crate::utils::youtube::yt_search;
 pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: ChannelId) {
     let data = ctx.data::<BotData>();
 
+    let serprops_lock = data.all_ser_props.get(&guild_id).unwrap();
+
     // Check if playing already. If so, do nothing.
-    {
-        let serprops = data.all_ser_props.get(&guild_id).unwrap().read().await;
-        if serprops.playing.is_some() {
-            return;
-        }
+    if serprops_lock.read().await.playing.is_some() {
+        return;
     }
 
-    let serprops_lock = data.all_ser_props.get(&guild_id).unwrap();
     let song = match load_next_song(ctx, serprops_lock).await {
         Some(song) => {
             let mut serprops = serprops_lock.write().await;
@@ -44,35 +42,29 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
     let songbird_guild_id = SongbirdGuildId::from(guild_id);
     let songbird_channel_id = SongbirdChannelId::from(voice_channel_id);
 
-    let call = {
-        if let Some(call) = manager.get(songbird_guild_id) {
-            call
-        } else {
-            let call = manager
-                .join(songbird_guild_id, songbird_channel_id)
-                .await
-                .unwrap();
-            let mut call_lock = call.lock().await;
+    let call = if let Some(call) = manager.get(songbird_guild_id) {
+        call
+    } else {
+        let call = manager
+            .join(songbird_guild_id, songbird_channel_id)
+            .await
+            .unwrap();
 
-            call_lock.add_global_event(
-                Event::Track(TrackEvent::End),
-                TrackEndNotifier {
-                    guild_id,
-                    voice_channel_id,
-                    ctx: ctx.clone(),
-                },
-            );
+        call.lock().await.add_global_event(
+            Event::Track(TrackEvent::End),
+            TrackEndNotifier {
+                guild_id,
+                voice_channel_id,
+                ctx: ctx.clone(),
+            },
+        );
 
-            drop(call_lock);
-
-            call
-        }
+        call
     };
 
     let mut call_lock = call.lock().await;
-
-    let mut serprops = data.all_ser_props.get(&guild_id).unwrap().write().await;
-    serprops.playing_handle = Some(call_lock.play_input(source.clone().into()));
+    let mut serprops = serprops_lock.write().await;
+    serprops.playing_handle = Some(call_lock.play_input(source.into()));
 }
 
 struct TrackEndNotifier {
