@@ -24,8 +24,7 @@ pub struct BotData {
 pub struct ServerProps {
     pub request_queue: VecDeque<Song>,
     pub playlist_queue: VecDeque<Song>,
-    pub playing: Option<Song>,
-    pub playing_handle: Option<TrackHandle>,
+    pub audio_state: AudioHandlerState,
 }
 
 impl ServerProps {
@@ -33,8 +32,7 @@ impl ServerProps {
         ServerProps {
             request_queue: VecDeque::new(),
             playlist_queue: VecDeque::new(),
-            playing: None,
-            playing_handle: None,
+            audio_state: AudioHandlerState::Idle,
         }
     }
 
@@ -64,6 +62,12 @@ impl Song {
             Song::WithId { id, .. } => Some(id),
         }
     }
+}
+
+pub enum AudioHandlerState {
+    Idle,
+    BetweenSongs { past_song: Song },
+    CurrentSong { song: Song, handle: TrackHandle },
 }
 
 pub enum PlayRequest {

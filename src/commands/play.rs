@@ -9,7 +9,7 @@ use crate::utils::respond::{
     create_embed_no_yt_search_result, create_embed_now_playing,
     create_embed_user_not_in_voice_channel, create_embed_user_queue_added, edit_embed, send_embed,
 };
-use crate::utils::structs::{BotData, PlayRequest, Song};
+use crate::utils::structs::{AudioHandlerState, BotData, PlayRequest, Song};
 use crate::utils::youtube::{yt_id_to_name, yt_list_id_to_vec, yt_search};
 
 use serenity::all::{
@@ -127,7 +127,7 @@ async fn add_single_song(
         let mut server_props = data.all_ser_props.get(&guild_id).unwrap().write().await;
         server_props.request_queue.push_back(song.clone());
         (
-            server_props.playing.is_some(),
+            !matches!(server_props.audio_state, AudioHandlerState::Idle),
             server_props.request_queue.len().to_string(),
             server_props.playlist_queue.len().to_string(),
         )

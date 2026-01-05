@@ -5,7 +5,7 @@ use crate::utils::respond::{
     create_embed_not_playing, create_embed_removed_last_song,
     create_embed_removed_last_song_failed, create_embed_user_not_in_voice_channel, send_embed,
 };
-use crate::utils::structs::BotData;
+use crate::utils::structs::{AudioHandlerState, BotData};
 
 pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     let (guild_id, Some(_voice_channel_id)) = guild_and_voice_channel_id(ctx, cmd) else {
@@ -16,7 +16,10 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     let data = ctx.data::<BotData>();
     let mut server_props = data.all_ser_props.get(&guild_id).unwrap().write().await;
 
-    if server_props.playing.is_none() {
+    if !matches!(
+        server_props.audio_state,
+        AudioHandlerState::CurrentSong { .. }
+    ) {
         send_embed(ctx, cmd, create_embed_not_playing()).await;
         return;
     }

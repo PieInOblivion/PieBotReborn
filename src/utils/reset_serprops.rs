@@ -4,7 +4,7 @@ use serenity::model::id::GuildId;
 use serenity::prelude::Context;
 use songbird::id::GuildId as SongbirdGuildId;
 
-use crate::utils::structs::BotData;
+use crate::utils::structs::{AudioHandlerState, BotData};
 
 pub async fn reset_serprops(ctx: &Context, guild_id: GuildId) -> bool {
     let data = ctx.data::<BotData>();
@@ -13,15 +13,14 @@ pub async fn reset_serprops(ctx: &Context, guild_id: GuildId) -> bool {
     // Check if there's actually anything to reset
     let has_content = !serprops.request_queue.is_empty()
         || !serprops.playlist_queue.is_empty()
-        || serprops.playing.is_some()
-        || serprops.playing_handle.is_some();
+        || !matches!(serprops.audio_state, AudioHandlerState::Idle);
 
     // Clear queues and stop playback
     serprops.request_queue = VecDeque::new();
     serprops.playlist_queue = VecDeque::new();
-    serprops.playing = None;
-
-    if let Some(handle) = serprops.playing_handle.take() {
+    if let AudioHandlerState::CurrentSong { handle, .. } =
+        std::mem::replace(&mut serprops.audio_state, AudioHandlerState::Idle)
+    {
         let _ = handle.stop();
     }
 

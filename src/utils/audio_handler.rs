@@ -9,7 +9,7 @@ use songbird::input::YoutubeDl;
 use songbird::{Event, EventContext, EventHandler, TrackEvent};
 
 use crate::utils::reset_serprops::reset_serprops;
-use crate::utils::structs::{BotData, ServerProps, Song};
+use crate::utils::structs::{AudioHandlerState, BotData, ServerProps, Song};
 use crate::utils::youtube::yt_search;
 
 pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: ChannelId) {
@@ -18,16 +18,15 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
     let serprops_lock = data.all_ser_props.get(&guild_id).unwrap();
 
     // Check if playing already. If so, do nothing.
-    if serprops_lock.read().await.playing.is_some() {
+    if !matches!(
+        serprops_lock.read().await.audio_state,
+        AudioHandlerState::Idle
+    ) {
         return;
     }
 
     let song = match load_next_song(ctx, serprops_lock).await {
-        Some(song) => {
-            let mut serprops = serprops_lock.write().await;
-            serprops.playing = Some(song.clone());
-            song
-        }
+        Some(song) => song,
         None => {
             reset_serprops(ctx, guild_id).await;
             return;
@@ -64,7 +63,11 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
 
     let mut call_lock = call.lock().await;
     let mut serprops = serprops_lock.write().await;
-    serprops.playing_handle = Some(call_lock.play_input(source.into()));
+    let handle = call_lock.play_input(source.into());
+    serprops.audio_state = AudioHandlerState::CurrentSong {
+        song: song.clone(),
+        handle,
+    };
 }
 
 struct TrackEndNotifier {
@@ -85,8 +88,16 @@ impl EventHandler for TrackEndNotifier {
                 .write()
                 .await;
 
-            serprops.playing = None;
-            serprops.playing_handle = None;
+            let past_song =
+                match std::mem::replace(&mut serprops.audio_state, AudioHandlerState::Idle) {
+                    AudioHandlerState::CurrentSong { song, .. } => Some(song),
+                    AudioHandlerState::BetweenSongs { past_song } => Some(past_song),
+                    AudioHandlerState::Idle => None,
+                };
+
+            if let Some(song) = past_song {
+                serprops.audio_state = AudioHandlerState::BetweenSongs { past_song: song };
+            }
         }
 
         audio_event(&self.ctx, self.guild_id, self.voice_channel_id).await;
@@ -97,16 +108,26 @@ impl EventHandler for TrackEndNotifier {
 
 async fn load_next_song(ctx: &Context, serprops_lock: &RwLock<ServerProps>) -> Option<Song> {
     loop {
-        let option_song = {
+        let next_song = {
             let mut serprops = serprops_lock.write().await;
-            serprops
+            let option_song = serprops
                 .request_queue
                 .pop_front()
-                .or_else(|| serprops.playlist_queue.pop_front())
+                .or_else(|| serprops.playlist_queue.pop_front());
+
+            if let Some(song) = option_song {
+                serprops.audio_state = AudioHandlerState::BetweenSongs {
+                    past_song: song.clone(),
+                };
+                Some(song)
+            } else {
+                serprops.audio_state = AudioHandlerState::Idle;
+                None
+            }
         };
 
-        match option_song {
-            Some(Song::WithId { .. }) => return option_song,
+        match next_song {
+            Some(Song::WithId { .. }) => return next_song,
             Some(Song::NoId { title }) => {
                 if let Some(searched) = yt_search(ctx, &title).await {
                     return Some(searched);
