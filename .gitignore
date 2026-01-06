@@ -17,3 +17,6 @@ Cargo.lock
 
 # Temp file created by yt-dlp
 --Frag1
+
+# Debug runner
+/bin
