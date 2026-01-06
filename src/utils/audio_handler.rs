@@ -70,7 +70,7 @@ pub async fn audio_event(
     let mut serprops = serprops_lock.write().await;
     let handle = call_lock.play_input(source.into());
     serprops.audio_state = AudioHandlerState::Playing {
-        song: song.clone(),
+        song: song,
         handle,
     };
 }
