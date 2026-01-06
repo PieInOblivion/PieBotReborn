@@ -92,13 +92,16 @@ async fn all_alone_check_and_leave(ctx: &Context, vs: &VoiceState) {
         let guild = guild_id.to_guild_cached(&ctx.cache).unwrap();
         let voice_states = &guild.voice_states;
 
-        let members_in_channel: Vec<&VoiceState> = voice_states
-            .into_iter()
-            .filter(|state| state.channel_id == Some(channel_id))
-            .collect();
+        let bot_id = ctx.cache.current_user().id;
 
-        members_in_channel.len() == 1
-            && members_in_channel[0].user_id == ctx.cache.current_user().id
+        let mut members = voice_states
+            .into_iter()
+            .filter(|state| state.channel_id == Some(channel_id));
+
+        match (members.next(), members.next()) {
+            (Some(only_member), None) => only_member.user_id == bot_id,
+            _ => false,
+        }
     };
 
     if alone_in_channel {
