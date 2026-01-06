@@ -44,11 +44,11 @@ impl EventHandler for Handler {
             },
             FullEvent::InteractionCreate { .. } => {}
             FullEvent::VoiceStateUpdate { old, new, .. } => {
-                if let Some(old_state) = old {
-                    if let Some(guild_id) = guild_id_if_alone(ctx, old_state) {
-                        reset_serprops(ctx, guild_id).await;
-                        return;
-                    }
+                if let Some(old_state) = old
+                    && let Some(guild_id) = guild_id_if_alone(ctx, old_state)
+                {
+                    reset_serprops(ctx, guild_id).await;
+                    return;
                 }
 
                 if let Some(guild_id) = guild_id_if_alone(ctx, new) {
@@ -83,15 +83,9 @@ impl EventHandler for Handler {
 }
 
 fn guild_id_if_alone(ctx: &Context, vs: &VoiceState) -> Option<GuildId> {
-    let channel_id = match vs.channel_id {
-        Some(id) => id,
-        None => return None,
-    };
+    let channel_id = vs.channel_id?;
 
-    let guild_id = match vs.guild_id {
-        Some(id) => id,
-        None => return None,
-    };
+    let guild_id = vs.guild_id?;
 
     let guild = guild_id.to_guild_cached(&ctx.cache).unwrap();
     let voice_states = &guild.voice_states;
