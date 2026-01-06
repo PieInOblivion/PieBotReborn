@@ -95,15 +95,10 @@ impl Spotify {
 
             for item in json["items"].as_array()?.iter() {
                 let title = item["name"].as_str()?;
-                let artists = item["artists"]
-                    .as_array()?
-                    .iter()
-                    .filter_map(|artist| artist["name"].as_str())
-                    .collect::<Vec<&str>>()
-                    .join(" ");
+                let full_title = build_track_title(&item["artists"], title)?;
 
                 album.push_back(Song::NoId {
-                    title: Arc::from(format!("{} {}", artists, title)),
+                    title: Arc::from(full_title),
                 });
             }
 
@@ -130,15 +125,10 @@ impl Spotify {
 
             for item in json["items"].as_array()?.iter() {
                 let title = item["track"]["name"].as_str()?;
-                let artists = item["track"]["artists"]
-                    .as_array()?
-                    .iter()
-                    .filter_map(|artist| artist["name"].as_str())
-                    .collect::<Vec<&str>>()
-                    .join(" ");
+                let full_title = build_track_title(&item["track"]["artists"], title)?;
 
                 playlist.push_back(Song::NoId {
-                    title: Arc::from(format!("{} {}", artists, title)),
+                    title: Arc::from(full_title),
                 });
             }
 
@@ -158,15 +148,10 @@ impl Spotify {
         let json = Self::https_req(self, ctx, &url).await?;
 
         let title = json["name"].as_str()?;
-        let artists = json["artists"]
-            .as_array()?
-            .iter()
-            .filter_map(|artist| artist["name"].as_str())
-            .collect::<Vec<&str>>()
-            .join(" ");
+        let full_title = build_track_title(&json["artists"], title)?;
 
         Some(Song::NoId {
-            title: Arc::from(format!("{} {}", artists, title)),
+            title: Arc::from(full_title),
         })
     }
 
@@ -185,4 +170,20 @@ impl Spotify {
 
         response.json().await.ok()
     }
+}
+
+fn build_track_title(artists: &Value, title: &str) -> Option<String> {
+    let arr = artists.as_array()?;
+    let mut out = String::new();
+
+    for artist in arr {
+        if let Some(name) = artist["name"].as_str() {
+            out.push_str(name);
+            out.push(' ');
+        }
+    }
+
+    out.push_str(title);
+
+    Some(out)
 }
