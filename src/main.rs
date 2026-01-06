@@ -49,35 +49,6 @@ impl EventHandler for Handler {
                 }
 
                 all_alone_check_and_leave(ctx, new).await;
-
-                async fn all_alone_check_and_leave(ctx: &Context, vs: &VoiceState) {
-                    let channel_id = match vs.channel_id {
-                        Some(id) => id,
-                        None => return,
-                    };
-
-                    let guild_id = match vs.guild_id {
-                        Some(id) => id,
-                        None => return,
-                    };
-
-                    let alone_in_channel = {
-                        let guild = guild_id.to_guild_cached(&ctx.cache).unwrap();
-                        let voice_states = &guild.voice_states;
-
-                        let members_in_channel: Vec<&VoiceState> = voice_states
-                            .into_iter()
-                            .filter(|state| state.channel_id == Some(channel_id))
-                            .collect();
-
-                        members_in_channel.len() == 1
-                            && members_in_channel[0].user_id == ctx.cache.current_user().id
-                    };
-
-                    if alone_in_channel {
-                        reset_serprops(ctx, guild_id).await;
-                    }
-                }
             }
             FullEvent::Ready { data_about_bot, .. } => {
                 let data = ctx.data::<BotData>();
@@ -103,6 +74,35 @@ impl EventHandler for Handler {
             }
             _ => {}
         }
+    }
+}
+
+async fn all_alone_check_and_leave(ctx: &Context, vs: &VoiceState) {
+    let channel_id = match vs.channel_id {
+        Some(id) => id,
+        None => return,
+    };
+
+    let guild_id = match vs.guild_id {
+        Some(id) => id,
+        None => return,
+    };
+
+    let alone_in_channel = {
+        let guild = guild_id.to_guild_cached(&ctx.cache).unwrap();
+        let voice_states = &guild.voice_states;
+
+        let members_in_channel: Vec<&VoiceState> = voice_states
+            .into_iter()
+            .filter(|state| state.channel_id == Some(channel_id))
+            .collect();
+
+        members_in_channel.len() == 1
+            && members_in_channel[0].user_id == ctx.cache.current_user().id
+    };
+
+    if alone_in_channel {
+        reset_serprops(ctx, guild_id).await;
     }
 }
 
