@@ -66,8 +66,23 @@ impl Song {
 
 pub enum AudioHandlerState {
     Idle,
-    BetweenSongs { past_song: Song },
-    CurrentSong { song: Song, handle: TrackHandle },
+    Playing { song: Song, handle: TrackHandle },
+}
+
+impl AudioHandlerState {
+    pub fn song(&self) -> Option<Song> {
+        match self {
+            AudioHandlerState::Playing { song, .. } => Some(song.clone()),
+            AudioHandlerState::Idle => None,
+        }
+    }
+
+    pub fn handle(&self) -> Option<TrackHandle> {
+        match self {
+            AudioHandlerState::Playing { handle, .. } => Some(handle.clone()),
+            AudioHandlerState::Idle => None,
+        }
+    }
 }
 
 pub enum PlayRequest {

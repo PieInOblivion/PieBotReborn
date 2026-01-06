@@ -113,7 +113,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
         }
     }
 
-    audio_event(ctx, guild_id, voice_channel_id).await;
+    audio_event(ctx, guild_id, voice_channel_id, false).await;
 }
 
 async fn add_single_song(

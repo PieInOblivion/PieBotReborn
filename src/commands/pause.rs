@@ -7,7 +7,7 @@ use crate::utils::respond::{
     create_embed_is_paused, create_embed_not_playing, create_embed_paused,
     create_embed_user_not_in_voice_channel, send_embed,
 };
-use crate::utils::structs::{AudioHandlerState, BotData};
+use crate::utils::structs::BotData;
 
 pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     let (guild_id, Some(_voice_channel_id)) = guild_and_voice_channel_id(ctx, cmd) else {
@@ -18,20 +18,25 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     let data = ctx.data::<BotData>();
     let server_props = data.all_ser_props.get(&guild_id).unwrap().read().await;
 
-    let handle = match &server_props.audio_state {
-        AudioHandlerState::CurrentSong { handle, .. } => handle,
-        _ => {
-            send_embed(ctx, cmd, create_embed_not_playing()).await;
-            return;
-        }
+    let Some(handle) = server_props.audio_state.handle() else {
+        send_embed(ctx, cmd, create_embed_not_playing()).await;
+        return;
     };
 
-    if handle.get_info().await.unwrap().playing == PlayMode::Pause {
+    let Ok(info) = handle.get_info().await else {
+        send_embed(ctx, cmd, create_embed_not_playing()).await;
+        return;
+    };
+
+    if info.playing == PlayMode::Pause {
         send_embed(ctx, cmd, create_embed_is_paused()).await;
         return;
     }
 
-    handle.pause().unwrap();
+    if handle.pause().is_err() {
+        send_embed(ctx, cmd, create_embed_not_playing()).await;
+        return;
+    }
 
     send_embed(ctx, cmd, create_embed_paused()).await;
 }

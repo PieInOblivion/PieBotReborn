@@ -18,9 +18,8 @@ pub async fn reset_serprops(ctx: &Context, guild_id: GuildId) -> bool {
     // Clear queues and stop playback
     serprops.request_queue = VecDeque::new();
     serprops.playlist_queue = VecDeque::new();
-    if let AudioHandlerState::CurrentSong { handle, .. } =
-        std::mem::replace(&mut serprops.audio_state, AudioHandlerState::Idle)
-    {
+    let prev_state = std::mem::replace(&mut serprops.audio_state, AudioHandlerState::Idle);
+    if let Some(handle) = prev_state.handle() {
         let _ = handle.stop();
     }
 

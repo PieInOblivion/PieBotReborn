@@ -1,5 +1,3 @@
-use tokio::sync::RwLock;
-
 use serenity::async_trait;
 use serenity::model::id::{ChannelId, GuildId};
 use serenity::prelude::Context;
@@ -12,16 +10,23 @@ use crate::utils::reset_serprops::reset_serprops;
 use crate::utils::structs::{AudioHandlerState, BotData, ServerProps, Song};
 use crate::utils::youtube::yt_search;
 
-pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: ChannelId) {
+pub async fn audio_event(
+    ctx: &Context,
+    guild_id: GuildId,
+    voice_channel_id: ChannelId,
+    goto_next_song: bool,
+) {
     let data = ctx.data::<BotData>();
 
     let serprops_lock = data.all_ser_props.get(&guild_id).unwrap();
 
     // Check if playing already. If so, do nothing.
-    if !matches!(
-        serprops_lock.read().await.audio_state,
-        AudioHandlerState::Idle
-    ) {
+    if !goto_next_song
+        && !matches!(
+            serprops_lock.read().await.audio_state,
+            AudioHandlerState::Idle
+        )
+    {
         return;
     }
 
@@ -64,7 +69,7 @@ pub async fn audio_event(ctx: &Context, guild_id: GuildId, voice_channel_id: Cha
     let mut call_lock = call.lock().await;
     let mut serprops = serprops_lock.write().await;
     let handle = call_lock.play_input(source.into());
-    serprops.audio_state = AudioHandlerState::CurrentSong {
+    serprops.audio_state = AudioHandlerState::Playing {
         song: song.clone(),
         handle,
     };
@@ -79,51 +84,24 @@ struct TrackEndNotifier {
 #[async_trait]
 impl EventHandler for TrackEndNotifier {
     async fn act(&self, _: &EventContext<'_>) -> Option<Event> {
-        {
-            let data = self.ctx.data::<BotData>();
-            let mut serprops = data
-                .all_ser_props
-                .get(&self.guild_id)
-                .unwrap()
-                .write()
-                .await;
-
-            let past_song =
-                match std::mem::replace(&mut serprops.audio_state, AudioHandlerState::Idle) {
-                    AudioHandlerState::CurrentSong { song, .. } => Some(song),
-                    AudioHandlerState::BetweenSongs { past_song } => Some(past_song),
-                    AudioHandlerState::Idle => None,
-                };
-
-            if let Some(song) = past_song {
-                serprops.audio_state = AudioHandlerState::BetweenSongs { past_song: song };
-            }
-        }
-
-        audio_event(&self.ctx, self.guild_id, self.voice_channel_id).await;
+        audio_event(&self.ctx, self.guild_id, self.voice_channel_id, true).await;
 
         None
     }
 }
 
-async fn load_next_song(ctx: &Context, serprops_lock: &RwLock<ServerProps>) -> Option<Song> {
+async fn load_next_song(
+    ctx: &Context,
+    serprops_lock: &tokio::sync::RwLock<ServerProps>,
+) -> Option<Song> {
     loop {
         let next_song = {
             let mut serprops = serprops_lock.write().await;
-            let option_song = serprops
+
+            serprops
                 .request_queue
                 .pop_front()
-                .or_else(|| serprops.playlist_queue.pop_front());
-
-            if let Some(song) = option_song {
-                serprops.audio_state = AudioHandlerState::BetweenSongs {
-                    past_song: song.clone(),
-                };
-                Some(song)
-            } else {
-                serprops.audio_state = AudioHandlerState::Idle;
-                None
-            }
+                .or_else(|| serprops.playlist_queue.pop_front())
         };
 
         match next_song {
