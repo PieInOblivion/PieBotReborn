@@ -69,10 +69,7 @@ pub async fn audio_event(
     let mut call_lock = call.lock().await;
     let mut serprops = serprops_lock.write().await;
     let handle = call_lock.play_input(source.into());
-    serprops.audio_state = AudioHandlerState::Playing {
-        song: song,
-        handle,
-    };
+    serprops.audio_state = AudioHandlerState::Playing { song, handle };
 }
 
 struct TrackEndNotifier {
