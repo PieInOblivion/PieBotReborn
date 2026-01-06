@@ -5,7 +5,7 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::SystemTime;
 
-use tokio::sync::RwLock;
+use tokio::sync::Mutex;
 
 use serenity::prelude::Context;
 
@@ -20,7 +20,7 @@ struct SpotifyToken {
 pub struct Spotify {
     id: Arc<str>,
     secret: Arc<str>,
-    token: RwLock<SpotifyToken>,
+    token: Mutex<SpotifyToken>,
 }
 
 impl Spotify {
@@ -28,7 +28,7 @@ impl Spotify {
         Spotify {
             id: Arc::from(id),
             secret: Arc::from(secret),
-            token: RwLock::new(SpotifyToken {
+            token: Mutex::new(SpotifyToken {
                 token: String::new(),
                 token_birth: SystemTime::now(),
                 token_expires_in_sec: 0, // Token will refresh on first use
@@ -37,7 +37,7 @@ impl Spotify {
     }
 
     async fn get_token(&self, ctx: &Context) -> String {
-        let mut token_info = self.token.write().await;
+        let mut token_info = self.token.lock().await;
         let sec_since_refresh = SystemTime::now()
             .duration_since(token_info.token_birth)
             .unwrap()
