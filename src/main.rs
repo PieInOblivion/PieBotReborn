@@ -93,7 +93,7 @@ fn guild_id_if_alone(ctx: &Context, vs: &VoiceState) -> Option<GuildId> {
     let bot_id = ctx.cache.current_user().id;
 
     let mut channel_members = voice_states
-        .into_iter()
+        .iter()
         .filter(|state| state.channel_id == Some(channel_id));
 
     match (channel_members.next(), channel_members.next()) {
