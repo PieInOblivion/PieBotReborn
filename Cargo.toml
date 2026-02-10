@@ -9,7 +9,7 @@ lto = true
 [dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 symphonia = { version = "0.5", default-features = false, features = ["aac", "mkv", "ogg", "mp3", "isomp4", "vorbis"] }
-rand = "0.9"
+rand = "0.10"
 regex-lite = "0.1"
 serde_json = "1"
 base64_light = "0.1.5"

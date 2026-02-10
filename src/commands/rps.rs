@@ -1,6 +1,6 @@
 use crate::utils::respond::{create_embed_rps, send_embed};
 
-use rand::Rng;
+use rand::RngExt;
 
 use std::fs;
 
