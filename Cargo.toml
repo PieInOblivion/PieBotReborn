@@ -35,6 +35,3 @@ features = [
     "rustls_backend",
     "voice",
 ]
-
-[patch.crates-io]
-audiopus_sys = { git = "https://github.com/amsam0/audiopus_sys.git" }
