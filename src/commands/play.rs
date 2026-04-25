@@ -55,8 +55,10 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
         }
 
         PlayRequest::YouTubeVideoAndPlaylist { video, playlist } => {
-            let song = yt_id_to_name(ctx, &video).await;
-            let list = yt_list_id_to_vec(ctx, &playlist).await;
+            let (song, list) = tokio::join!(
+                yt_id_to_name(ctx, &video),
+                yt_list_id_to_vec(ctx, &playlist)
+            );
 
             if let (Some(song), Some(mut list)) = (song, list) {
                 list.retain(|s| s.id() != song.id());
@@ -124,7 +126,11 @@ async fn add_single_song(
     song: Song,
 ) {
     let (is_playing, req_len, play_len) = {
-        let mut server_props = data.all_ser_props.get(&guild_id).unwrap().write().await;
+        let serprops_lock = data
+            .all_ser_props
+            .get(&guild_id)
+            .expect("Guild not found in props");
+        let mut server_props = serprops_lock.write().await;
         server_props.request_queue.push_back(song.clone());
         (
             !matches!(server_props.audio_state, AudioHandlerState::Idle),
@@ -155,7 +161,11 @@ async fn add_playlist(
     let playlist_len = playlist.len();
 
     let (req_len, play_len) = {
-        let mut server_props = data.all_ser_props.get(&guild_id).unwrap().write().await;
+        let serprops_lock = data
+            .all_ser_props
+            .get(&guild_id)
+            .expect("Guild not found in props");
+        let mut server_props = serprops_lock.write().await;
         server_props.playlist_queue.append(&mut playlist);
         server_props.playlist_queue_shuffle();
         (
