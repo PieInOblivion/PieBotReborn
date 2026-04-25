@@ -9,14 +9,16 @@ pub async fn yt_search(ctx: &Context, q: &str) -> Option<Song> {
     let data = ctx.data::<BotData>();
     let key = &data.youtube_key;
 
-    let encoded_q = q.replace(' ', "%20");
+    let url = "https://www.googleapis.com/youtube/v3/search";
+    let query = [
+        ("part", "snippet"),
+        ("q", q),
+        ("maxResults", "1"),
+        ("type", "video"),
+        ("key", key),
+    ];
 
-    let url = format!(
-        "https://www.googleapis.com/youtube/v3/search?part=snippet&q={}&maxResults=1&type=video&key={}",
-        encoded_q, key
-    );
-
-    let response = yt_https_request(ctx, &url).await?;
+    let response = yt_https_request(ctx, url, &query).await?;
     let video_id = response["items"][0]["id"]["videoId"].as_str()?;
     let video_title = response["items"][0]["snippet"]["title"].as_str()?;
 
@@ -30,12 +32,10 @@ pub async fn yt_id_to_name(ctx: &Context, id: &str) -> Option<Song> {
     let data = ctx.data::<BotData>();
     let key = &data.youtube_key;
 
-    let url = format!(
-        "https://www.googleapis.com/youtube/v3/videos?part=snippet&id={}&key={}",
-        id, key
-    );
+    let url = "https://www.googleapis.com/youtube/v3/videos";
+    let query = [("part", "snippet"), ("id", id), ("key", key)];
 
-    let response = yt_https_request(ctx, &url).await?;
+    let response = yt_https_request(ctx, url, &query).await?;
     let video_title = response["items"][0]["snippet"]["title"].as_str()?;
 
     Some(Song::WithId {
@@ -53,12 +53,16 @@ pub async fn yt_list_id_to_vec(ctx: &Context, id: &str) -> Option<VecDeque<Song>
     let mut list: VecDeque<Song> = VecDeque::new();
 
     loop {
-        let url = format!(
-            "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&pageToken={}&playlistId={}&key={}",
-            next_page_token, id, key
-        );
+        let url = "https://www.googleapis.com/youtube/v3/playlistItems";
+        let query = [
+            ("part", "snippet"),
+            ("maxResults", "50"),
+            ("pageToken", &next_page_token),
+            ("playlistId", id),
+            ("key", key),
+        ];
 
-        let response = yt_https_request(ctx, &url).await?;
+        let response = yt_https_request(ctx, url, &query).await?;
 
         if let Some(res) = response["items"].as_array() {
             for item in res.iter() {
@@ -82,10 +86,14 @@ pub async fn yt_list_id_to_vec(ctx: &Context, id: &str) -> Option<VecDeque<Song>
     Some(list)
 }
 
-async fn yt_https_request(ctx: &Context, url: &str) -> Option<serde_json::Value> {
+async fn yt_https_request(
+    ctx: &Context,
+    url: &str,
+    query: &[(&str, &str)],
+) -> Option<serde_json::Value> {
     let data = ctx.data::<BotData>();
 
-    let response = data.http.get(url).send().await.ok()?;
+    let response = data.http.get(url).query(query).send().await.ok()?;
 
     response.json().await.ok()
 }
