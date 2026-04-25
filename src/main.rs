@@ -104,6 +104,10 @@ fn guild_id_if_alone(ctx: &Context, vs: &VoiceState) -> Option<GuildId> {
 
 #[tokio::main]
 async fn main() {
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
     let spotify_id = env::var("SPOTIFY_ID").expect("SPOTIFY_ID env not set");
     let spotify_secret = env::var("SPOTIFY_SECRET").expect("SPOTIFY_SECRET env not set");
     let discord_token = env::var("DISCORD_TOKEN").expect("DISCORD_TOKEN env not set");

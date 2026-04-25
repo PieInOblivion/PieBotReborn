@@ -13,6 +13,7 @@ rand = "0.10"
 regex-lite = "0.1"
 serde_json = "1"
 base64_light = "0.1.5"
+rustls = { version = "0.23", features = ["aws-lc-rs"] }
 
 [dependencies.songbird]
 git = "https://github.com/serenity-rs/songbird.git"
