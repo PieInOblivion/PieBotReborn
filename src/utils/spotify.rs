@@ -24,7 +24,7 @@ pub struct Spotify {
 }
 
 impl Spotify {
-    pub async fn new(id: String, secret: String) -> Spotify {
+    pub fn new(id: String, secret: String) -> Spotify {
         Spotify {
             id: Arc::from(id),
             secret: Arc::from(secret),
@@ -59,8 +59,8 @@ impl Spotify {
 
     async fn get_token_new(ctx: &Context, id: &str, secret: &str) -> Option<(String, u64)> {
         let auth_url = "https://accounts.spotify.com/api/token";
-        let auth = base64_encode(format!("{}:{}", id, secret).as_str());
-        let auth_code = format!("Basic {}", auth);
+        let auth = base64_encode(format!("{id}:{secret}").as_str());
+        let auth_code = format!("Basic {auth}");
 
         let data = ctx.data::<BotData>();
 
@@ -163,7 +163,7 @@ impl Spotify {
         let response = data
             .http
             .get(url)
-            .header("Authorization", &format!("Bearer {}", token))
+            .header("Authorization", &format!("Bearer {token}"))
             .send()
             .await
             .ok()?;

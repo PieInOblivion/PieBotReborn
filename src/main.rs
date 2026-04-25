@@ -59,20 +59,20 @@ impl EventHandler for Handler {
                 let data = ctx.data::<BotData>();
                 let guild_ids: Vec<GuildId> = data.all_ser_props.keys().copied().collect();
 
-                for gid in guild_ids {
-                    let commands = vec![
-                        commands::play::register(),
-                        commands::pause::register(),
-                        commands::resume::register(),
-                        commands::skip::register(),
-                        commands::stop::register(),
-                        commands::remove::register(),
-                        commands::now_playing::register(),
-                        commands::queue::register(),
-                        commands::rps::register(),
-                    ];
+                let commands = vec![
+                    commands::play::register(),
+                    commands::pause::register(),
+                    commands::resume::register(),
+                    commands::skip::register(),
+                    commands::stop::register(),
+                    commands::remove::register(),
+                    commands::now_playing::register(),
+                    commands::queue::register(),
+                    commands::rps::register(),
+                ];
 
-                    let _commands = GuildId::set_commands(gid, &ctx.http, &commands).await;
+                for gid in guild_ids {
+                    let _ = GuildId::set_commands(gid, &ctx.http, &commands).await;
                 }
 
                 println!("{} is connected!", data_about_bot.user.name);
@@ -87,7 +87,7 @@ fn guild_id_if_alone(ctx: &Context, vs: &VoiceState) -> Option<GuildId> {
 
     let guild_id = vs.guild_id?;
 
-    let guild = guild_id.to_guild_cached(&ctx.cache).unwrap();
+    let guild = guild_id.to_guild_cached(&ctx.cache)?;
     let voice_states = &guild.voice_states;
 
     let bot_id = ctx.cache.current_user().id;
@@ -120,7 +120,7 @@ async fn main() {
         .map(|line| GuildId::new(line.parse().unwrap()))
         .collect();
 
-    let spotify = Spotify::new(spotify_id, spotify_secret).await;
+    let spotify = Spotify::new(spotify_id, spotify_secret);
     let mut allserprops: HashMap<GuildId, RwLock<ServerProps>> = HashMap::new();
 
     for gid in &guild_ids {
@@ -148,6 +148,6 @@ async fn main() {
     .expect("Error creating client");
 
     if let Err(err) = client.start().await {
-        println!("Client error: {:?}", err);
+        println!("Client error: {err:?}");
     }
 }
