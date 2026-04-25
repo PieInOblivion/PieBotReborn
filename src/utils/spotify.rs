@@ -173,13 +173,12 @@ impl Spotify {
 }
 
 fn build_track_title(artists: &Value, title: &str) -> Option<String> {
-    let arr = artists.as_array()?;
-
-    let artists_str = arr
+    let mut names: Vec<&str> = artists
+        .as_array()?
         .iter()
         .filter_map(|a| a["name"].as_str())
-        .collect::<Vec<_>>()
-        .join(" ");
+        .collect();
 
-    Some(format!("{artists_str} {title}"))
+    names.push(title);
+    Some(names.join(" "))
 }
