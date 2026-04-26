@@ -5,22 +5,37 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::SystemTime;
 
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 use serenity::prelude::Context;
 
 use crate::utils::structs::{BotData, Song};
 
 struct SpotifyToken {
-    token: String,
+    token: Arc<str>,
     token_birth: SystemTime,
     token_expires_in_sec: u64,
+}
+
+impl SpotifyToken {
+    fn get_valid_token(&self) -> Option<Arc<str>> {
+        let sec_since_refresh = SystemTime::now()
+            .duration_since(self.token_birth)
+            .ok()?
+            .as_secs();
+
+        if sec_since_refresh + 10 < self.token_expires_in_sec && !self.token.is_empty() {
+            Some(self.token.clone())
+        } else {
+            None
+        }
+    }
 }
 
 pub struct Spotify {
     id: Arc<str>,
     secret: Arc<str>,
-    token: Mutex<SpotifyToken>,
+    token: RwLock<SpotifyToken>,
 }
 
 impl Spotify {
@@ -28,36 +43,36 @@ impl Spotify {
         Spotify {
             id: Arc::from(id),
             secret: Arc::from(secret),
-            token: Mutex::new(SpotifyToken {
-                token: String::new(),
+            token: RwLock::new(SpotifyToken {
+                token: Arc::from(""),
                 token_birth: SystemTime::now(),
                 token_expires_in_sec: 0, // Token will refresh on first use
             }),
         }
     }
 
-    async fn get_token(&self, ctx: &Context) -> String {
-        let mut token_info = self.token.lock().await;
-        let sec_since_refresh = SystemTime::now()
-            .duration_since(token_info.token_birth)
-            .unwrap()
-            .as_secs();
-
-        // 10 second buffer or empty token
-        if sec_since_refresh + 10 > token_info.token_expires_in_sec || token_info.token.is_empty() {
-            let (new_token, expires) = Self::get_token_new(ctx, &self.id, &self.secret)
-                .await
-                .unwrap();
-            token_info.token = new_token;
-            token_info.token_birth = SystemTime::now();
-            token_info.token_expires_in_sec = expires;
-            token_info.token.clone()
-        } else {
-            token_info.token.clone()
+    async fn get_token(&self, ctx: &Context) -> Arc<str> {
+        if let Some(token) = self.token.read().await.get_valid_token() {
+            return token;
         }
+
+        let mut token_info = self.token.write().await;
+        if let Some(token) = token_info.get_valid_token() {
+            return token;
+        }
+
+        let (new_token, expires) = Self::get_token_new(ctx, &self.id, &self.secret)
+            .await
+            .unwrap();
+
+        token_info.token = new_token.clone();
+        token_info.token_birth = SystemTime::now();
+        token_info.token_expires_in_sec = expires;
+
+        new_token
     }
 
-    async fn get_token_new(ctx: &Context, id: &str, secret: &str) -> Option<(String, u64)> {
+    async fn get_token_new(ctx: &Context, id: &str, secret: &str) -> Option<(Arc<str>, u64)> {
         let auth_url = "https://accounts.spotify.com/api/token";
         let auth = base64_encode(format!("{id}:{secret}").as_str());
         let auth_code = format!("Basic {auth}");
@@ -77,7 +92,7 @@ impl Spotify {
         let json: Value = response.json().await.ok()?;
 
         Some((
-            json["access_token"].as_str()?.to_string(),
+            Arc::from(json["access_token"].as_str()?),
             json["expires_in"].as_u64()?,
         ))
     }
