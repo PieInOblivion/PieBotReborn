@@ -4,7 +4,6 @@ mod utils;
 use crate::utils::spotify::Spotify;
 use crate::utils::structs::{BotData, ServerProps};
 
-use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::sync::Arc;
@@ -57,7 +56,6 @@ impl EventHandler for Handler {
             }
             FullEvent::Ready { data_about_bot, .. } => {
                 let data = ctx.data::<BotData>();
-                let guild_ids: Vec<GuildId> = data.all_ser_props.keys().copied().collect();
 
                 let commands = vec![
                     commands::play::register(),
@@ -71,8 +69,8 @@ impl EventHandler for Handler {
                     commands::rps::register(),
                 ];
 
-                for gid in guild_ids {
-                    let _ = GuildId::set_commands(gid, &ctx.http, &commands).await;
+                for gid in &data.guild_ids {
+                    let _ = GuildId::set_commands(*gid, &ctx.http, &commands).await;
                 }
 
                 println!("{} is connected!", data_about_bot.user.name);
@@ -121,16 +119,20 @@ async fn main() {
         .collect();
 
     let spotify = Spotify::new(spotify_id, spotify_secret);
-    let mut allserprops: HashMap<GuildId, RwLock<ServerProps>> = HashMap::new();
+    let mut temp_props: Vec<(GuildId, RwLock<ServerProps>)> = guild_ids
+        .into_iter()
+        .map(|gid| (gid, RwLock::new(ServerProps::new())))
+        .collect();
 
-    for gid in &guild_ids {
-        allserprops.insert(*gid, RwLock::new(ServerProps::new()));
-    }
+    temp_props.sort_by_key(|(id, _)| *id);
+
+    let (guild_ids, all_ser_props): (Vec<_>, Vec<_>) = temp_props.into_iter().unzip();
 
     let songbird = Songbird::serenity();
 
     let bot_data = Arc::new(BotData {
-        all_ser_props: allserprops,
+        guild_ids: guild_ids.into(),
+        all_ser_props: all_ser_props.into(),
         spotify,
         http: HttpClient::new(),
         songbird: songbird.clone(),

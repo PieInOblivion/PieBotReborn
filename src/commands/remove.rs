@@ -14,7 +14,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
     };
 
     let data = ctx.data::<BotData>();
-    let mut server_props = data.all_ser_props.get(&guild_id).unwrap().write().await;
+    let mut server_props = data.server_props(guild_id).write().await;
 
     if !matches!(server_props.audio_state, AudioHandlerState::Playing { .. }) {
         send_embed(ctx, cmd, create_embed_not_playing()).await;

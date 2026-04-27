@@ -18,7 +18,7 @@ pub async fn audio_event(
 ) {
     let data = ctx.data::<BotData>();
 
-    let serprops_lock = data.all_ser_props.get(&guild_id).unwrap();
+    let serprops_lock = data.server_props(guild_id);
 
     // Check if playing already. If so, do nothing.
     if !goto_next_song

@@ -8,7 +8,7 @@ use crate::utils::structs::{AudioHandlerState, BotData};
 
 pub async fn reset_serprops(ctx: &Context, guild_id: GuildId) -> bool {
     let data = ctx.data::<BotData>();
-    let mut serprops = data.all_ser_props.get(&guild_id).unwrap().write().await;
+    let mut serprops = data.server_props(guild_id).write().await;
 
     // Check if there's actually anything to reset
     let has_content = !serprops.request_queue.is_empty()

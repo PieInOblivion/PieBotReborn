@@ -65,7 +65,7 @@ pub async fn run(ctx: &Context, cmd: &CommandInteraction) {
                 let playlist_len = list.len();
 
                 let (req_len, play_len) = {
-                    let mut server_props = data.all_ser_props.get(&guild_id).unwrap().write().await;
+                    let mut server_props = data.server_props(guild_id).write().await;
                     server_props.request_queue.push_back(song);
                     server_props.playlist_queue.append(&mut list);
                     server_props.playlist_queue_shuffle();
@@ -126,10 +126,7 @@ async fn add_single_song(
     song: Song,
 ) {
     let (is_playing, req_len, play_len) = {
-        let serprops_lock = data
-            .all_ser_props
-            .get(&guild_id)
-            .expect("Guild not found in props");
+        let serprops_lock = data.server_props(guild_id);
         let mut server_props = serprops_lock.write().await;
         server_props.request_queue.push_back(song.clone());
         (
@@ -161,10 +158,7 @@ async fn add_playlist(
     let playlist_len = playlist.len();
 
     let (req_len, play_len) = {
-        let serprops_lock = data
-            .all_ser_props
-            .get(&guild_id)
-            .expect("Guild not found in props");
+        let serprops_lock = data.server_props(guild_id);
         let mut server_props = serprops_lock.write().await;
         server_props.playlist_queue.append(&mut playlist);
         server_props.playlist_queue_shuffle();

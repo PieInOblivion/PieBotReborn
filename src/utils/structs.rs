@@ -3,7 +3,7 @@ use serenity::model::id::GuildId;
 use songbird::Songbird;
 use songbird::tracks::TrackHandle;
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::sync::Arc;
 
 use rand::seq::SliceRandom;
@@ -14,11 +14,22 @@ use crate::utils::spotify::Spotify;
 use reqwest::Client as HttpClient;
 
 pub struct BotData {
-    pub all_ser_props: HashMap<GuildId, RwLock<ServerProps>>,
+    pub guild_ids: Box<[GuildId]>,
+    pub all_ser_props: Box<[RwLock<ServerProps>]>,
     pub spotify: Spotify,
     pub http: HttpClient,
     pub songbird: Arc<Songbird>,
     pub youtube_key: String,
+}
+
+impl BotData {
+    pub fn server_props(&self, target_id: GuildId) -> &RwLock<ServerProps> {
+        let index = self
+            .guild_ids
+            .binary_search(&target_id)
+            .expect("Guild not found in static list");
+        &self.all_ser_props[index]
+    }
 }
 
 pub struct ServerProps {
